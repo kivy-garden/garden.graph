@@ -277,9 +277,6 @@ class Graph(Widget):
             ylabels[0].text = str(ypoints[0])
             ylabels[0].texture_update()
             y1 = ylabels[0].texture_size
-            ylabels[0].text = str(ypoints[-1])
-            ylabels[0].texture_update()
-            y2 = ylabels[0].texture_size
             y_start = y_next + (padding + y1[1] if len(xlabels) and xlabel_grid
                                 else 0) +\
                                 (padding + y1[1] if not y_next else 0)
@@ -290,13 +287,15 @@ class Graph(Widget):
             ratio = (yextent - y_start) / float(ymax - ymin)
             y_start -= y1[1] / 2.
             func = (lambda x: 10 ** x) if self.ylog else lambda x: x
+            y1 = y1[0]
             for k in xrange(len(ylabels)):
                 ylabels[k].text = '%g' % func(ypoints[k])
                 ylabels[k].texture_update()
                 ylabels[k].size = ylabels[k].texture_size
+                y1 = max(y1, ylabels[k].texture_size[0])
                 ylabels[k].pos = (x_next, y_start + (ypoints[k] - ymin) *
                                   ratio)
-            x_next += max(y1[0], y2[0]) + padding
+            x_next += y1 + padding
         if len(xlabels) and xlabel_grid:
             func = log10 if self.xlog else lambda x: x
             # find the distance from the end that'll fit the last tick label
