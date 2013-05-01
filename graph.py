@@ -253,6 +253,8 @@ class Graph(Widget):
         ymax = self.ymax
         xmin = self.xmin
         precision = self.precision
+        x_overlap = False
+        y_overlap = False
         # set up x and y axis labels
         if xlabel:
             xlabel.text = self.xlabel
@@ -296,7 +298,10 @@ class Graph(Widget):
                 y1 = max(y1, ylabels[k].texture_size[0])
                 ylabels[k].pos = (x_next, y_start + (ypoints[k] - ymin) *
                                   ratio)
-            x_next += y1 + padding
+            if len(ylabels) > 1 and ylabels[0].top > ylabels[1].y:
+                y_overlap = True
+            else:
+                x_next += y1 + padding
         if len(xlabels) and xlabel_grid:
             func = log10 if self.xlog else lambda x: x
             # find the distance from the end that'll fit the last tick label
@@ -311,6 +316,7 @@ class Graph(Widget):
             xmin = func(xmin)
             ratio = (xextent - x_next) / float(func(self.xmax) - xmin)
             func = (lambda x: 10 ** x) if self.xlog else lambda x: x
+            right = -1
             for k in xrange(len(xlabels)):
                 xlabels[k].text = precision % func(xpoints[k])
                 # update the size so we can center the labels on ticks
@@ -318,7 +324,12 @@ class Graph(Widget):
                 xlabels[k].size = xlabels[k].texture_size
                 xlabels[k].pos = (x_next + (xpoints[k] - xmin) * ratio -
                                   xlabels[k].texture_size[0] / 2., y_next)
-            y_next += padding + xlabels[0].texture_size[1]
+                if xlabels[k].x < right:
+                    x_overlap = True
+                    break
+                right = xlabels[k].right
+            if not x_overlap:
+                y_next += padding + xlabels[0].texture_size[1]
         # now re-center the x and y axis labels
         if xlabel:
             xlabel.x = x_next + (xextent - x_next) / 2. - xlabel.width / 2.
@@ -329,6 +340,12 @@ class Graph(Widget):
             ylabel.transform = t.multiply(Matrix().translate(-ylabel.center[0],
                                                              -ylabel.center[1],
                                                              0))
+        if x_overlap:
+            for k in xrange(len(xlabels)):
+                xlabels[k].text = ''
+        if y_overlap:
+            for k in xrange(len(ylabels)):
+                ylabels[k].text = ''
         return x_next, y_next, xextent, yextent
 
     def _update_ticks(self, size):
