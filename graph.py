@@ -263,14 +263,8 @@ class Graph(Widget):
             ylabel.text = self.ylabel
             ylabel.texture_update()
             ylabel.size = ylabel.texture_size
-            ylabel.pos = (padding + x, y + height / 2. - ylabel.height / 2.)
+            ylabel.x = padding + x - (ylabel.width / 2. - ylabel.height / 2.)
             x_next += padding + ylabel.height
-            t = Matrix().translate(ylabel.center[0],
-                                   ylabel.center[1] + ylabel.height, 0)
-            t = t.multiply(Matrix().rotate(-radians(270), 0, 0, 1))
-            ylabel.transform = t.multiply(Matrix().translate(-ylabel.center[0],
-                                                             -ylabel.center[1],
-                                                             0))
         xpoints = self._ticks_majorx
         xlabels = self._x_grid_label
         xlabel_grid = self.x_grid_label
@@ -330,6 +324,11 @@ class Graph(Widget):
             xlabel.x = x_next + (xextent - x_next) / 2. - xlabel.width / 2.
         if ylabel:
             ylabel.y = y_next + (yextent - y_next) / 2. - ylabel.height / 2.
+            t = Matrix().translate(ylabel.center[0], ylabel.center[1], 0)
+            t = t.multiply(Matrix().rotate(-radians(270), 0, 0, 1))
+            ylabel.transform = t.multiply(Matrix().translate(-ylabel.center[0],
+                                                             -ylabel.center[1],
+                                                             0))
         return x_next, y_next, xextent, yextent
 
     def _update_ticks(self, size):
