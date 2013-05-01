@@ -41,19 +41,38 @@ to be redrawn due to changes. See the MeshLinePlot class for how it is done.
 
 __all__ = ('Graph', 'Plot', 'MeshLinePlot')
 
-from kivy.app import App
+from math import radians
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.properties import NumericProperty, BooleanProperty,\
     BoundedNumericProperty, StringProperty, ListProperty, ObjectProperty,\
     DictProperty, AliasProperty
 from kivy.clock import Clock
-from kivy.graphics import Mesh, Color, Rotate, StencilUse
+from kivy.graphics import Mesh, Color
 from kivy.graphics.transformation import Matrix
 from kivy.event import EventDispatcher
+from kivy.lang import Builder
 from kivy import metrics
 from math import log10, floor, ceil
 from decimal import Decimal
+
+Builder.load_string('''
+#:kivy 1.1.0
+
+<RotateLabel>:
+    canvas.before:
+        PushMatrix
+        MatrixInstruction:
+            matrix: self.transform
+    canvas.after:
+        PopMatrix
+
+''')
+
+
+class RotateLabel(Label):
+
+    transform = ObjectProperty(Matrix())
 
 
 class Graph(Widget):
@@ -234,7 +253,13 @@ class Graph(Widget):
             ylabel.texture_update()
             ylabel.size = ylabel.texture_size
             ylabel.pos = (padding + x, y + height / 2. - ylabel.height / 2.)
-            x_next += padding + ylabel.width
+            x_next += padding + ylabel.height
+            t = Matrix().translate(ylabel.center[0],
+                                   ylabel.center[1] + ylabel.height, 0)
+            t = t.multiply(Matrix().rotate(-radians(270), 0, 0, 1))
+            ylabel.transform = t.multiply(Matrix().translate(-ylabel.center[0],
+                                                             -ylabel.center[1],
+                                                             0))
         xpoints = self._ticks_majorx
         xlabels = self._x_grid_label
         xlabel_grid = self.x_grid_label
@@ -396,11 +421,8 @@ class Graph(Widget):
 
         if self.ylabel:
             if not self._ylabel:
-                ylabel = Label(font_size=font_size)
+                ylabel = RotateLabel(font_size=font_size)
                 self.add_widget(ylabel)
-                rot = Rotate()
-                rot.set(90, 0, 0, 1)
-                #ylabel.canvas.before.add(rot)
                 self._ylabel = ylabel
         else:
             ylabel = self._ylabel
@@ -776,6 +798,7 @@ class MeshLinePlot(Plot):
 
 if __name__ == '__main__':
     from math import sin, cos
+    from kivy.app import App
 
     class TestApp(App):
 
