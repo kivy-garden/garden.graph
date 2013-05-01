@@ -36,6 +36,11 @@ is responsible for updating these instructions to show within the bounding
 box of the graph the proper plot. The Graph notifies the Plot when it needs
 to be redrawn due to changes. See the MeshLinePlot class for how it is done.
 
+.. note::
+
+    The graph uses a stencil view to clip the plots to the graph display area.
+    As with the stencil graphics instructions, you cannot stack more than 8
+    stencil-aware widgets.
 
 '''
 
@@ -44,6 +49,7 @@ __all__ = ('Graph', 'Plot', 'MeshLinePlot')
 from math import radians
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
+from kivy.uix.stencilview import StencilView
 from kivy.properties import NumericProperty, BooleanProperty,\
     BoundedNumericProperty, StringProperty, ListProperty, ObjectProperty,\
     DictProperty, AliasProperty
@@ -91,6 +97,8 @@ class Graph(Widget):
     _x_grid_label = ListProperty([])
     # holds all the y-axis tick mark labels
     _y_grid_label = ListProperty([])
+    # holds the stencil view that clipse the plots to graph area
+    _plot_area = ObjectProperty(None)
     # the mesh drawing all the ticks/grids
     _mesh = ObjectProperty(None)
     # the mesh which draws the surrounding rectangle
@@ -115,6 +123,9 @@ class Graph(Widget):
         mesh = self._mesh_rect
         mesh.vertices = [0] * (5 * 4)
         mesh.indices = [k for k in xrange(5)]
+
+        self._plot_area = StencilView()
+        self.add_widget(self._plot_area)
 
         self._trigger = Clock.create_trigger(self._redraw_all)
         self._trigger_size = Clock.create_trigger(self._redraw_size)
@@ -461,6 +472,8 @@ class Graph(Widget):
         # graphs, it's (x0, y0, x1, y1), which correspond with the bottom left
         # and top right corner locations, respectively
         size = self._update_labels()
+        self._plot_area.pos = (size[0], size[1])
+        self._plot_area.size = (size[2] - size[0], size[3] - size[1])
         self._update_ticks(size)
         self._update_plots(size)
 
@@ -476,8 +489,9 @@ class Graph(Widget):
         >>> plot.points = [(x / 10., sin(x / 50.)) for x in xrange(-0, 101)]
         >>> graph.add_plot(plot)
         '''
+        area = self._plot_area
         for group in plot._get_drawings():
-            self.canvas.add(group)
+            area.canvas.add(group)
         self.plots = self.plots + [plot]
 
     def remove_plot(self, plot):
@@ -493,7 +507,7 @@ class Graph(Widget):
         >>> graph.add_plot(plot)
         >>> graph.remove_plot(plot)
         '''
-        self.canvas.remove_group(plot._get_group())
+        self._plot_area.canvas.remove_group(plot._get_group())
         self.plots.remove(plot)
 
     xmin = NumericProperty(0.)
@@ -813,7 +827,7 @@ if __name__ == '__main__':
             plot.points = [(x / 10., sin(x / 50.)) for x in xrange(-500, 501)]
             graph.add_plot(plot)
             plot = MeshLinePlot(color=[0, 1, 0, 1])
-            plot.points = [(x / 10., cos(x / 50.)) for x in xrange(-500, 501)]
+            plot.points = [(x / 10., cos(x / 50.)) for x in xrange(-600, 501)]
             graph.add_plot(plot)
             plot = MeshLinePlot(color=[0, 0, 1, 1])
             graph.add_plot(plot)
