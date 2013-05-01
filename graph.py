@@ -6,7 +6,7 @@ The :class:`Graph` widget is widget for displaying plots.
 
 '''
 
-__all__ = ('Graph', 'MeshLinePlot')
+__all__ = ('Graph', 'Plot', 'MeshLinePlot')
 
 from kivy.app import App
 from kivy.uix.widget import Widget
@@ -17,6 +17,7 @@ from kivy.properties import NumericProperty, BooleanProperty,\
 from kivy.clock import Clock
 from kivy.graphics import Mesh, Color, Rotate, StencilUse
 from kivy.graphics.transformation import Matrix
+from kivy.event import EventDispatcher
 from kivy import metrics
 from math import log10, floor, ceil
 from decimal import Decimal
@@ -408,67 +409,92 @@ class Graph(Widget):
         self._update_plots(size)
 
     def add_plot(self, plot):
-        for group in plot._drawing():
+        '''Add a new plot to this graph.
+
+        :Parameters:
+            `plot`:
+                Plot to add to this graph.
+
+        >>> graph = Graph()
+        >>> plot = MeshLinePlot(mode='line_strip', color=[1, 0, 0, 1])
+        >>> plot.points = [(x / 10., sin(x / 50.)) for x in xrange(-0, 101)]
+        >>> graph.add_plot(plot)
+        '''
+        for group in plot._get_drawings():
             self.canvas.add(group)
         self.plots = self.plots + [plot]
 
     def remove_plot(self, plot):
+        '''Remove a plot from this graph.
+
+        :Parameters:
+            `plot`:
+                Plot to remove from this graph.
+
+        >>> graph = Graph()
+        >>> plot = MeshLinePlot(mode='line_strip', color=[1, 0, 0, 1])
+        >>> plot.points = [(x / 10., sin(x / 50.)) for x in xrange(-0, 101)]
+        >>> graph.add_plot(plot)
+        >>> graph.remove_plot(plot)
+        '''
         self.canvas.remove_group(plot._get_group())
         self.plots.remove(plot)
 
     xmin = NumericProperty(0.)
-    '''Minimum value allowed for :data:`value`.
+    '''The x-axis minimum value.
 
-    :data:`min` is a :class:`~kivy.properties.NumericProperty`, default to 0.
+    If :data:`xlog` is True, xmin must be larger than zero.
+
+    :data:`xmin` is a :class:`~kivy.properties.NumericProperty`, defaults to 0.
     '''
 
     xmax = NumericProperty(100.)
-    '''Maximum value allowed for :data:`value`.
+    '''The x-axis maximum value, larger than xmin.
 
-    :data:`max` is a :class:`~kivy.properties.NumericProperty`, default to 100.
+    :data:`xmax` is a :class:`~kivy.properties.NumericProperty`, defaults to 0.
     '''
 
     xlog = BooleanProperty(False)
-    '''Determines whether the ticks should be displayed logarithmically (True)
+    '''Determines whether the x-axis should be displayed logarithmically (True)
     or linearly (False).
 
-    :data:`log` is a :class:`~kivy.properties.BooleanProperty`, defaults
+    :data:`xlog` is a :class:`~kivy.properties.BooleanProperty`, defaults
     to False.
     '''
 
     x_ticks_major = BoundedNumericProperty(0, min=0)
-    '''Distance between major tick marks.
+    '''Distance between major tick marks on the x-axis.
 
     Determines the distance between the major tick marks. Major tick marks
-    start from min and re-occur at every ticks_major until :data:`max`.
-    If :data:`max` doesn't overlap with a integer multiple of ticks_major,
-    no tick will occur at :data:`max`. Zero indicates no tick marks.
+    start from min and re-occur at every ticks_major until :data:`xmax`.
+    If :data:`xmax` doesn't overlap with a integer multiple of ticks_major,
+    no tick will occur at :data:`xmax`. Zero indicates no tick marks.
 
-    If :data:`log` is true, then this indicates the distance between ticks
-    in multiples of current decade. E.g. if :data:`min_log` is 0.1 and
+    If :data:`xlog` is true, then this indicates the distance between ticks
+    in multiples of current decade. E.g. if :data:`xmin` is 0.1 and
     ticks_major is 0.1, it means there will be a tick at every 10th of the
     decade, i.e. 0.1 ... 0.9, 1, 2... If it is 0.3, the ticks will occur at
     0.1, 0.3, 0.6, 0.9, 2, 5, 8, 10. You'll notice that it went from 8 to 10
     instead of to 20, that's so that we can say 0.5 and have ticks at every
     half decade, e.g. 0.1, 0.5, 1, 5, 10, 50... Similarly, if ticks_major is
     1.5, there will be ticks at 0.1, 5, 100, 5,000... Also notice, that there's
-    always a major tick at the start. Finally, if e.g. :data:`min_log` is 0.6
+    always a major tick at the start. Finally, if e.g. :data:`xmin` is 0.6
     and this 0.5 there will be ticks at 0.6, 1, 5...
 
-    :data:`ticks_major` is a :class:`~kivy.properties.BoundedNumericProperty`,
-    defaults to 0.
+    :data:`x_ticks_major` is a
+    :class:`~kivy.properties.BoundedNumericProperty`, defaults to 0.
     '''
 
     x_ticks_minor = BoundedNumericProperty(0, min=0)
-    '''The number of sub-intervals that divide ticks_major.
+    '''The number of sub-intervals that divide x_ticks_major.
 
     Determines the number of sub-intervals into which ticks_major is divided,
     if non-zero. The actual number of minor ticks between the major ticks is
     ticks_minor - 1. Only used if ticks_major is non-zero. If there's no major
-    tick at max then the number of minor ticks after the last major
-    tick will be however many ticks fit until max.
+    tick at xmax then the number of minor ticks after the last major
+    tick will be however many ticks fit until xmax.
 
-    If self.log is true, then this indicates the number of intervals the
+    If self.xlog is true, then this indicates the number of intervals the
     distance between major ticks is divided. The result is the number of
     multiples of decades between ticks. I.e. if ticks_minor is 10, then if
     ticks_major is 1, there will be ticks at 0.1, 0.2...0.9, 1, 2, 3... If
@@ -476,68 +502,104 @@ class Graph(Widget):
     as is common, if ticks major is 1, and ticks minor is 5, there will be
     ticks at 0.1, 0.2, 0.4... 0.8, 1, 2...
 
-    :data:`ticks_minor` is a :class:`~kivy.properties.BoundedNumericProperty`,
-    defaults to 0.
+    :data:`x_ticks_minor` is a
+    :class:`~kivy.properties.BoundedNumericProperty`, defaults to 0.
     '''
 
     x_grid = BooleanProperty(False)
+    '''Determines whether the x-axis has tick marks or a full grid.
+
+    If :data:`x_ticks_major` is non-zero, then if x_grid is False tick marks
+    will be displayed at every major tick. If x_grid is True, instead of ticks,
+    a vertical line will be displayed at every major tick.
+
+    :data:`x_grid` is a :class:`~kivy.properties.BooleanProperty`, defaults
+    to False.
+    '''
 
     x_grid_label = BooleanProperty(False)
+    '''Whether labels should be displayed beneath each major tick. If true,
+    each major tick will have a label containing the axis value.
+
+    :data:`x_grid_label` is a :class:`~kivy.properties.BooleanProperty`,
+    defaults to False.
+    '''
 
     xlabel = StringProperty('')
+    '''The label for the x-axis. If not empty it is displayed in the center of
+    the axis.
+
+    :data:`xlabel` is a :class:`~kivy.properties.StringProperty`,
+    defaults to ''.
+    '''
 
     ymin = NumericProperty(0.)
-    '''Minimum value allowed for :data:`value`.
+    '''The y-axis minimum value.
 
-    :data:`min` is a :class:`~kivy.properties.NumericProperty`, default to 0.
+    If :data:`ylog` is True, ymin must be larger than zero.
+
+    :data:`ymin` is a :class:`~kivy.properties.NumericProperty`, defaults to 0.
     '''
 
     ymax = NumericProperty(100.)
-    '''Maximum value allowed for :data:`value`.
+    '''The y-axis maximum value, larger than ymin.
 
-    :data:`max` is a :class:`~kivy.properties.NumericProperty`, default to 100.
+    :data:`ymax` is a :class:`~kivy.properties.NumericProperty`, defaults to 0.
     '''
 
     ylog = BooleanProperty(False)
-    '''Determines whether the ticks should be displayed logarithmically (True)
+    '''Determines whether the y-axis should be displayed logarithmically (True)
     or linearly (False).
 
-    :data:`log` is a :class:`~kivy.properties.BooleanProperty`, defaults
+    :data:`ylog` is a :class:`~kivy.properties.BooleanProperty`, defaults
     to False.
     '''
 
     y_ticks_major = BoundedNumericProperty(0, min=0)
     '''Distance between major tick marks. See :data:`x_ticks_major`.
 
-    :data:`ticks_major` is a :class:`~kivy.properties.BoundedNumericProperty`,
-    defaults to 0.
+    :data:`y_ticks_major` is a
+    :class:`~kivy.properties.BoundedNumericProperty`, defaults to 0.
     '''
 
     y_ticks_minor = BoundedNumericProperty(0, min=0)
     '''The number of sub-intervals that divide ticks_major.
     See :data:`x_ticks_minor`.
 
-    :data:`ticks_minor` is a :class:`~kivy.properties.BoundedNumericProperty`,
-    defaults to 0.
+    :data:`y_ticks_minor` is a
+    :class:`~kivy.properties.BoundedNumericProperty`, defaults to 0.
     '''
 
     y_grid = BooleanProperty(False)
+    '''Determines whether the y-axis has tick marks or a full grid. See
+    :data:`x_grid`.
+
+    :data:`y_grid` is a :class:`~kivy.properties.BooleanProperty`, defaults
+    to False.
+    '''
 
     y_grid_label = BooleanProperty(False)
+    '''Whether labels should be displayed beneath each major tick. If true,
+    each major tick will have a label containing the axis value.
+
+    :data:`y_grid_label` is a :class:`~kivy.properties.BooleanProperty`,
+    defaults to False.
+    '''
 
     ylabel = StringProperty('')
+    '''The label for the y-axis. If not empty it is displayed in the center of
+    the axis.
 
-    padding = NumericProperty(metrics.dp(5))
-    '''Padding of the slider. The padding is used for graphical representation
-    and interaction. It prevents the cursor from going out of the bounds of the
-    slider bounding box.
+    :data:`ylabel` is a :class:`~kivy.properties.StringProperty`,
+    defaults to ''.
+    '''
 
-    By default, padding is 10. The range of the slider is reduced from padding
-    2 on the screen. It allows drawing a cursor of 20px width, without having
-    the cursor going out of the widget.
+    padding = NumericProperty('5dp')
+    '''Padding distances between the labels, titles and graph, as well between
+    the widget and the objects near the boundaries.
 
-    :data:`padding` is a :class:`~kivy.properties.NumericProperty`, default to
-    10.
+    :data:`padding` is a :class:`~kivy.properties.NumericProperty`, defaults
+    to 5dp.
     '''
 
     font_size = NumericProperty('15sp')
@@ -548,23 +610,66 @@ class Graph(Widget):
     '''
 
     draw_border = BooleanProperty(True)
+    '''Whether a border is drawn around the canvas of the graph where the
+    plots are displayed.
+
+    :data:`draw_border` is a :class:`~kivy.properties.BooleanProperty`,
+    defaults to True.
+    '''
 
     plots = ListProperty([])
+    '''Holds a list of all the plots in the graph. To add and remove plots
+    from the graph use :data:`add_plot` and :data:`add_plot`. Do not add
+    directly edit this list.
+
+    :data:`plots` is a :class:`~kivy.properties.ListProperty`,
+    defaults to [].
+    '''
 
 
-class MeshLinePlot(Widget):
+class Plot(EventDispatcher):
+    '''Plot class, see module documentation for more information.
+    '''
 
+    # this function is called by graph whenever any of the parameters
+    # change. The plot should be recalculated then.
+    # log, min, max indicate the axis settings.
+    # size a 4-tuple describing the bounding box in which we can draw
+    # graphs, it's (x0, y0, x1, y1), which correspond with the bottom left
+    # and top right corner locations, respectively.
+    def _update(self, xlog, xmin, xmax, ylog, ymin, ymax, size):
+        pass
+
+    # returns a string which is unique and is the group name given to all the
+    # instructions returned by _get_drawings. Graph uses this to remove
+    # these instructions when needed.
+    def _get_group(self):
+        return ''
+
+    # returns a list of canvas instructions that will be added to the graph's
+    # canvas. These instructions must belong to a group as described
+    # in _get_group.
+    def _get_drawings(self):
+        return []
+
+
+class MeshLinePlot(Plot):
+    '''MeshLinePlot class which displays a set of points similar to a mesh.
+    '''
+
+    # mesh which forms the plot
     _mesh = ObjectProperty(None)
+    # color of the plot
     _color = ObjectProperty(None)
     _trigger = ObjectProperty(None)
-    # most recent values of the params
+    # most recent values of the params used to draw the plot
     _params = DictProperty({'xlog': False, 'xmin': 0, 'xmax': 100,
                             'ylog': False, 'ymin': 0, 'ymax': 100,
                             'size': (0, 0, 0, 0)})
 
     def __init__(self, **kwargs):
-        self._mesh = Mesh(group='LinePlot%d' % id(self))
         self._color = Color(1, 1, 1, group='LinePlot%d' % id(self))
+        self._mesh = Mesh(mode='line_strip', group='LinePlot%d' % id(self))
         super(MeshLinePlot, self).__init__(**kwargs)
 
         self._trigger = Clock.create_trigger(self._redraw)
@@ -602,33 +707,36 @@ class MeshLinePlot(Widget):
     def _get_group(self):
         return 'LinePlot%d' % id(self)
 
-    def _drawing(self):
+    def _get_drawings(self):
         return [self._color, self._mesh]
 
     def _set_mode(self, value):
         self._mesh.mode = value
         print value
     mode = AliasProperty(lambda self: self._mesh.mode, _set_mode)
-    '''Minimum value allowed for :data:`value_log` when using logarithms.
+    '''VBO Mode used for drawing the points. Can be one of: 'points',
+    'line_strip', 'line_loop', 'lines', 'triangle_strip', 'triangle_fan'.
+    See :class:`~kivy.graphics.Mesh` for more details.
 
-    :data:`min_log` is a :class:`~kivy.properties.AliasProperty`
-    of :data:`min`.
+    Defaults to 'line_strip'.
     '''
 
     def _set_color(self, value):
         self._color.rgba = value
     color = AliasProperty(lambda self: self._color.rgba, _set_color)
-    '''Minimum value allowed for :data:`value_log` when using logarithms.
+    '''Plot color, in the format [r, g, b, a] with values between 0-1.
 
-    :data:`min_log` is a :class:`~kivy.properties.AliasProperty`
-    of :data:`min`.
+    Defaults to [1, 1, 1, 1].
     '''
 
     points = ListProperty([])
-    '''Minimum value allowed for :data:`value_log` when using logarithms.
+    '''List of x, y points to be displayed in the plot.
 
-    :data:`min_log` is a :class:`~kivy.properties.AliasProperty`
-    of :data:`min`.
+    The elements of points are 2-tuples, (x, y). The points are displayed
+    based on the mode setting.
+
+    :data:`points` is a :class:`~kivy.properties.ListProperty`, defaults to
+    [].
     '''
 
 
@@ -644,13 +752,13 @@ if __name__ == '__main__':
                           y_grid_label=True, x_grid_label=True, padding=5,
                           xlog=False, ylog=False, x_grid=True, y_grid=True,
                           xmin=-50, xmax=50, ymin=-1, ymax=1)
-            plot = MeshLinePlot(mode='line_strip', color=[1, 0, 0, 1])
+            plot = MeshLinePlot(color=[1, 0, 0, 1])
             plot.points = [(x / 10., sin(x / 50.)) for x in xrange(-500, 501)]
             graph.add_plot(plot)
-            plot = MeshLinePlot(mode='line_strip', color=[0, 1, 0, 1])
+            plot = MeshLinePlot(color=[0, 1, 0, 1])
             plot.points = [(x / 10., cos(x / 50.)) for x in xrange(-500, 501)]
             graph.add_plot(plot)
-            plot = MeshLinePlot(mode='line_strip', color=[0, 0, 1, 1])
+            plot = MeshLinePlot(color=[0, 0, 1, 1])
             graph.add_plot(plot)
             plot.points = [(x, x / 50.) for x in xrange(-50, 51)]
             return graph
