@@ -44,7 +44,7 @@ to be redrawn due to changes. See the MeshLinePlot class for how it is done.
 
 '''
 
-__all__ = ('Graph', 'Plot', 'MeshLinePlot')
+__all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot')
 
 from math import radians
 from kivy.uix.widget import Widget
@@ -834,6 +834,39 @@ class MeshLinePlot(Plot):
     :data:`points` is a :class:`~kivy.properties.ListProperty`, defaults to
     [].
     '''
+
+class MeshStemPlot(MeshLinePlot):
+    '''MeshStemPlot uses the MeshLinePlot class to draw a stem plot. The data
+    provided is graphed from origin to the data point.
+    '''
+    
+    def _redraw(self, *args):
+        points = self.points
+        mesh = self._mesh
+        self._mesh.mode = 'lines'
+        vert = mesh.vertices
+        ind = mesh.indices
+        params = self._params
+        funcx = log10 if params['xlog'] else lambda x: x
+        funcy = log10 if params['ylog'] else lambda x: x
+        xmin = funcx(params['xmin'])
+        ymin = funcy(params['ymin'])
+        diff = len(points) * 2 - len(vert) / 4
+        size = params['size']
+        ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
+        ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
+        if diff < 0:
+            del vert[4 * len(points):]
+            del ind[len(points):]
+        elif diff > 0:
+            ind.extend(xrange(len(ind), len(ind) + diff))
+            vert.extend([0] * (diff * 4))
+        for k in xrange(len(points)):
+            vert[k * 8] = (funcx(points[k][0]) - xmin) * ratiox + size[0]
+            vert[k * 8 + 1] = (0 - ymin) * ratioy + size[1]
+            vert[k * 8 + 4] = (funcx(points[k][0]) - xmin) * ratiox + size[0]
+            vert[k * 8 + 5] = (funcy(points[k][1]) - ymin) * ratioy + size[1]
+        mesh.vertices = vert
 
 
 if __name__ == '__main__':
