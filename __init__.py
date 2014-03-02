@@ -808,7 +808,6 @@ class MeshLinePlot(Plot):
 
     def _set_mode(self, value):
         self._mesh.mode = value
-        print value
     mode = AliasProperty(lambda self: self._mesh.mode, _set_mode)
     '''VBO Mode used for drawing the points. Can be one of: 'points',
     'line_strip', 'line_loop', 'lines', 'triangle_strip', 'triangle_fan'.
