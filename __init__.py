@@ -785,7 +785,7 @@ class MeshLinePlot(Plot):
         funcy = log10 if params['ylog'] else lambda x: x
         xmin = funcx(params['xmin'])
         ymin = funcy(params['ymin'])
-        diff = len(points) - len(vert) / 4
+        diff = len(points) - len(vert) // 4
         size = params['size']
         ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
         ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
@@ -850,7 +850,7 @@ class MeshStemPlot(MeshLinePlot):
         funcy = log10 if params['ylog'] else lambda x: x
         xmin = funcx(params['xmin'])
         ymin = funcy(params['ymin'])
-        diff = len(points) * 2 - len(vert) / 4
+        diff = len(points) * 2 - len(vert) // 4
         size = params['size']
         ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
         ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
