@@ -45,6 +45,7 @@ to be redrawn due to changes. See the MeshLinePlot class for how it is done.
 '''
 
 __all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot')
+__version__ = '0.1'
 
 from math import radians
 from kivy.uix.widget import Widget
@@ -838,7 +839,7 @@ class MeshStemPlot(MeshLinePlot):
     '''MeshStemPlot uses the MeshLinePlot class to draw a stem plot. The data
     provided is graphed from origin to the data point.
     '''
-    
+
     def _redraw(self, *args):
         points = self.points
         mesh = self._mesh
