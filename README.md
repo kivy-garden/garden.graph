@@ -6,6 +6,8 @@ drawing multiple plot with different colors on the Graph. It also supports
 a title, ticks, labeled ticks, grids and a log or linear representation on
 both the x and y axis, independently.
 
+![Screenshot](/screenshot.png)
+
 To display a plot. First create a graph which will function as a "canvas" for
 the plots. Then create plot objects e.g. MeshLinePlot and add them to the
 graph.
