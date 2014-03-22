@@ -45,7 +45,7 @@ to be redrawn due to changes. See the MeshLinePlot class for how it is done.
 '''
 
 __all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot')
-__version__ = '0.1'
+__version__ = '0.2-dev'
 
 from math import radians
 from kivy.uix.widget import Widget
