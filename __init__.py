@@ -1046,16 +1046,16 @@ if __name__ == '__main__':
                     ymax=1,
                     **graph_theme)
 
-            plot = SmoothLinePlot(color=colors.next())
+            plot = SmoothLinePlot(color=next(colors))
             plot.points = [(x / 10., sin(x / 50.)) for x in range(-500, 501)]
             graph.add_plot(plot)
 
-            plot = MeshLinePlot(color=colors.next())
+            plot = MeshLinePlot(color=next(colors))
             plot.points = [(x / 10., cos(x / 50.)) for x in range(-600, 501)]
             graph.add_plot(plot)
             self.plot = plot
 
-            plot = MeshStemPlot(color=colors.next())
+            plot = MeshStemPlot(color=next(colors))
             graph.add_plot(plot)
             plot.points = [(x, x / 50.) for x in range(-50, 51)]
 
