@@ -291,10 +291,10 @@ class Graph(Widget):
         width = self.width
         height = self.height
         padding = self.padding
-        x_next = padding
-        y_next = padding
-        xextent = width
-        yextent = height
+        x_next = padding + x
+        y_next = padding + y
+        xextent = width + x
+        yextent = height + y
         ymin = self.ymin
         ymax = self.ymax
         xmin = self.xmin
@@ -329,7 +329,7 @@ class Graph(Widget):
             y_start = y_next + (padding + y1[1] if len(xlabels) and xlabel_grid
                                 else 0) +\
                                 (padding + y1[1] if not y_next else 0)
-            yextent = height - padding - y1[1] / 2.
+            yextent = y + height - padding - y1[1] / 2.
             if self.ylog:
                 ymax = log10(ymax)
                 ymin = log10(ymin)
@@ -353,7 +353,7 @@ class Graph(Widget):
             # find the distance from the end that'll fit the last tick label
             xlabels[0].text = precision % func(xpoints[-1])
             xlabels[0].texture_update()
-            xextent = width - xlabels[0].texture_size[0] / 2. - padding
+            xextent = x + width - xlabels[0].texture_size[0] / 2. - padding
             # find the distance from the start that'll fit the first tick label
             if not x_next:
                 xlabels[0].text = precision % func(xpoints[0])
@@ -394,7 +394,7 @@ class Graph(Widget):
         if y_overlap:
             for k in range(len(ylabels)):
                 ylabels[k].text = ''
-        return x_next, y_next, xextent, yextent
+        return x_next - x, y_next - y, xextent - x, yextent - y
 
     def _update_ticks(self, size):
         # re-compute the positions of the bounding rectangle
