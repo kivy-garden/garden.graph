@@ -291,10 +291,10 @@ class Graph(Widget):
         width = self.width
         height = self.height
         padding = self.padding
-        x_next = padding + x
-        y_next = padding + y
-        xextent = x + width
-        yextent = y + height
+        x_next = padding
+        y_next = padding
+        xextent = width
+        yextent = height
         ymin = self.ymin
         ymax = self.ymax
         xmin = self.xmin
@@ -329,7 +329,7 @@ class Graph(Widget):
             y_start = y_next + (padding + y1[1] if len(xlabels) and xlabel_grid
                                 else 0) +\
                                 (padding + y1[1] if not y_next else 0)
-            yextent = y + height - padding - y1[1] / 2.
+            yextent = height - padding - y1[1] / 2.
             if self.ylog:
                 ymax = log10(ymax)
                 ymin = log10(ymin)
@@ -353,7 +353,7 @@ class Graph(Widget):
             # find the distance from the end that'll fit the last tick label
             xlabels[0].text = precision % func(xpoints[-1])
             xlabels[0].texture_update()
-            xextent = x + width - xlabels[0].texture_size[0] / 2. - padding
+            xextent = width - xlabels[0].texture_size[0] / 2. - padding
             # find the distance from the start that'll fit the first tick label
             if not x_next:
                 xlabels[0].text = precision % func(xpoints[0])
@@ -543,7 +543,6 @@ class Graph(Widget):
         self._fbo_rect.texture = self._fbo.texture
         self._fbo_rect.size = self.size
         self._fbo_rect.pos = self.pos
-        self._background_rect.pos = self.pos
         self._background_rect.size = self.size
         self._update_ticks(size)
         self._update_plots(size)
