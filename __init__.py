@@ -51,7 +51,7 @@ The current availables plots are:
 '''
 
 __all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot', 'SmoothLinePlot')
-__version__ = '0.2'
+__version__ = '0.3-dev'
 
 from math import radians
 from kivy.uix.widget import Widget
