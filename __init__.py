@@ -342,8 +342,8 @@ class Graph(Widget):
                 ylabels[k].texture_update()
                 ylabels[k].size = ylabels[k].texture_size
                 y1 = max(y1, ylabels[k].texture_size[0])
-                ylabels[k].pos = map(int, (x_next, y_start + (ypoints[k] - ymin) *
-                                  ratio))
+                ylabels[k].pos = tuple(map(int, (x_next, y_start +
+                                                 (ypoints[k] - ymin) * ratio)))
             if len(ylabels) > 1 and ylabels[0].top > ylabels[1].y:
                 y_overlap = True
             else:
@@ -368,8 +368,8 @@ class Graph(Widget):
                 # update the size so we can center the labels on ticks
                 xlabels[k].texture_update()
                 xlabels[k].size = xlabels[k].texture_size
-                xlabels[k].pos = map(int, (x_next + (xpoints[k] - xmin) * ratio -
-                                  xlabels[k].texture_size[0] / 2., y_next))
+                xlabels[k].pos = tuple(map(int, (x_next + (xpoints[k] - xmin)
+                    * ratio - xlabels[k].texture_size[0] / 2., y_next)))
                 if xlabels[k].x < right:
                     x_overlap = True
                     break
@@ -966,16 +966,16 @@ class SmoothLinePlot(Plot):
     '''
 
     GRADIENT_DATA = (
-        "\x00\x00\x00\x07\x07\x07\x0f\x0f\x0f\x17\x17\x17\x1f\x1f\x1f"
-        "'''///777???GGGOOOWWW___gggooowww\x7f\x7f\x7f\x87\x87\x87"
-        "\x8f\x8f\x8f\x97\x97\x97\x9f\x9f\x9f\xa7\xa7\xa7\xaf\xaf\xaf"
-        "\xb7\xb7\xb7\xbf\xbf\xbf\xc7\xc7\xc7\xcf\xcf\xcf\xd7\xd7\xd7"
-        "\xdf\xdf\xdf\xe7\xe7\xe7\xef\xef\xef\xf7\xf7\xf7\xff\xff\xff"
-        "\xf6\xf6\xf6\xee\xee\xee\xe6\xe6\xe6\xde\xde\xde\xd5\xd5\xd5"
-        "\xcd\xcd\xcd\xc5\xc5\xc5\xbd\xbd\xbd\xb4\xb4\xb4\xac\xac\xac"
-        "\xa4\xa4\xa4\x9c\x9c\x9c\x94\x94\x94\x8b\x8b\x8b\x83\x83\x83"
-        "{{{sssjjjbbbZZZRRRJJJAAA999111)))   \x18\x18\x18\x10\x10\x10"
-        "\x08\x08\x08\x00\x00\x00")
+        b"\x00\x00\x00\x07\x07\x07\x0f\x0f\x0f\x17\x17\x17\x1f\x1f\x1f"
+        b"'''///777???GGGOOOWWW___gggooowww\x7f\x7f\x7f\x87\x87\x87"
+        b"\x8f\x8f\x8f\x97\x97\x97\x9f\x9f\x9f\xa7\xa7\xa7\xaf\xaf\xaf"
+        b"\xb7\xb7\xb7\xbf\xbf\xbf\xc7\xc7\xc7\xcf\xcf\xcf\xd7\xd7\xd7"
+        b"\xdf\xdf\xdf\xe7\xe7\xe7\xef\xef\xef\xf7\xf7\xf7\xff\xff\xff"
+        b"\xf6\xf6\xf6\xee\xee\xee\xe6\xe6\xe6\xde\xde\xde\xd5\xd5\xd5"
+        b"\xcd\xcd\xcd\xc5\xc5\xc5\xbd\xbd\xbd\xb4\xb4\xb4\xac\xac\xac"
+        b"\xa4\xa4\xa4\x9c\x9c\x9c\x94\x94\x94\x8b\x8b\x8b\x83\x83\x83"
+        b"{{{sssjjjbbbZZZRRRJJJAAA999111)))   \x18\x18\x18\x10\x10\x10"
+        b"\x08\x08\x08\x00\x00\x00")
 
     def create_drawings(self):
         from kivy.graphics import Line, RenderContext
@@ -1045,16 +1045,16 @@ if __name__ == '__main__':
                     ymax=1,
                     **graph_theme)
 
-            plot = SmoothLinePlot(color=colors.next())
+            plot = SmoothLinePlot(color=next(colors))
             plot.points = [(x / 10., sin(x / 50.)) for x in range(-500, 501)]
             graph.add_plot(plot)
 
-            plot = MeshLinePlot(color=colors.next())
+            plot = MeshLinePlot(color=next(colors))
             plot.points = [(x / 10., cos(x / 50.)) for x in range(-600, 501)]
             graph.add_plot(plot)
             self.plot = plot
 
-            plot = MeshStemPlot(color=colors.next())
+            plot = MeshStemPlot(color=next(colors))
             graph.add_plot(plot)
             plot.points = [(x, x / 50.) for x in range(-50, 51)]
 
