@@ -51,7 +51,7 @@ The current availables plots are:
 '''
 
 __all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot', 'SmoothLinePlot')
-__version__ = '0.2-dev'
+__version__ = '0.3-dev'
 
 from math import radians
 from kivy.uix.widget import Widget
@@ -293,8 +293,8 @@ class Graph(Widget):
         padding = self.padding
         x_next = padding + x
         y_next = padding + y
-        xextent = x + width
-        yextent = y + height
+        xextent = width + x
+        yextent = height + y
         ymin = self.ymin
         ymax = self.ymax
         xmin = self.xmin
@@ -394,7 +394,7 @@ class Graph(Widget):
         if y_overlap:
             for k in range(len(ylabels)):
                 ylabels[k].text = ''
-        return x_next, y_next, xextent, yextent
+        return x_next - x, y_next - y, xextent - x, yextent - y
 
     def _update_ticks(self, size):
         # re-compute the positions of the bounding rectangle
@@ -563,7 +563,6 @@ class Graph(Widget):
         self._fbo_rect.texture = self._fbo.texture
         self._fbo_rect.size = self.size
         self._fbo_rect.pos = self.pos
-        self._background_rect.pos = self.pos
         self._background_rect.size = self.size
         self._update_ticks(size)
         self._update_plots(size)
@@ -986,6 +985,8 @@ class SmoothLinePlot(Plot):
     }
     '''
 
+    # XXX This gradient data is a 64x1 RGB image, and
+    # values goes from 0 -> 255 -> 0.
     GRADIENT_DATA = (
         b"\x00\x00\x00\x07\x07\x07\x0f\x0f\x0f\x17\x17\x17\x1f\x1f\x1f"
         b"'''///777???GGGOOOWWW___gggooowww\x7f\x7f\x7f\x87\x87\x87"
