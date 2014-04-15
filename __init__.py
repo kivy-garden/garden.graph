@@ -64,6 +64,7 @@ from kivy.clock import Clock
 from kivy.graphics import Mesh, Color, Rectangle
 from kivy.graphics import Fbo
 from kivy.graphics.transformation import Matrix
+from kivy.graphics.texture import Texture
 from kivy.event import EventDispatcher
 from kivy.lang import Builder
 from kivy import metrics
@@ -874,7 +875,7 @@ class MeshLinePlot(Plot):
     def create_drawings(self):
         self._color = Color(*self.color)
         self._mesh = Mesh(mode='line_strip')
-        self.bind(color=lambda instr, value: setattr(self._color.rgba, value))
+        self.bind(color=lambda instr, value: setattr(self._color, 'rgba', value))
         return [self._color, self._mesh]
 
     def draw(self, *args):
@@ -1007,10 +1008,77 @@ class SmoothLinePlot(Plot):
         self._gline.points = points
 
 
+class ContourPlot(Plot):
+    """
+    This class generates a plot of 3D data and displays it as an intensity map image.
+    The user must first specify 'xrange' and 'yrange' (tuples of min,max) and then 'data', the intensity values.
+    """
+    _image = ObjectProperty(None)
+    data = ListProperty([])
+    xrange = ListProperty([0, 100])
+    yrange = ListProperty([0, 100])
+
+    # Important to note that you must put **kwargs for custom classes otherwise instantiating in the kv file complains.
+    def __init__(self, **kwargs):
+        super(ContourPlot, self).__init__(**kwargs)
+        self.bind(data=self.ask_draw, xrange=self.ask_draw, yrange=self.ask_draw)
+
+    def create_drawings(self):
+        self._image = Rectangle()
+        self._color = Color([1, 1, 1, 1])
+        self.bind(color=lambda instr, value: setattr(self._color, 'rgba', value))
+        return [self._color, self._image]
+
+    def draw(self, *args):
+        import numpy as np
+        data = self.data
+        xdim, ydim = len(data), len(data[0])
+        buf = np.zeros((xdim, ydim, 3), dtype=int)
+        zmax, zmin = max(data[0]), min(data[0])
+
+        # Find the minimum and maximum z values
+        for ii in range(xdim):
+            for jj in range(ydim):
+                z = data[ii][jj]
+                zmax, zmin = max(z, zmax), min(z, zmin)
+        # Scale the z values into RGB data
+        for ii in range(xdim):
+            for jj in range(ydim):
+                z = data[ii][jj]
+                buf[ii, jj, :] = int( (z - zmin) / (zmax-zmin) * 255)
+
+        flatbuf = np.reshape(buf, (buf.size))
+        charbuf = ''.join(map(chr, flatbuf))
+        self._texture = Texture.create(size=(xdim, ydim), colorfmt='rgb')
+        self._texture.blit_buffer(charbuf, colorfmt='rgb', bufferfmt='ubyte')
+        image = self._image
+        # Set the cross section to display the data stored as a texture
+        image.texture = self._texture
+        # Set the position of the cross section to the graph size
+
+        params = self._params
+        funcx = log10 if params['xlog'] else lambda x: x
+        funcy = log10 if params['ylog'] else lambda x: x
+        xmin = funcx(params['xmin'])
+        ymin = funcy(params['ymin'])
+        size = params['size']
+        ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
+        ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
+
+        bl = (funcx(self.xrange[0]) - xmin) * ratiox + size[0], (funcy(self.yrange[0]) - ymin) * ratioy + size[1]
+        tr = (funcx(self.xrange[1]) - xmin) * ratiox + size[0], (funcy(self.yrange[1]) - ymin) * ratioy + size[1]
+        image.pos = bl
+        w = tr[0] - bl[0]
+        h = tr[1] - bl[1]
+        image.size = (w, h)
+
+
+
 if __name__ == '__main__':
     import itertools
-    from math import sin, cos
+    from math import sin, cos, pi
     from kivy.utils import get_color_from_hex as rgb
+    from kivy.uix.boxlayout import BoxLayout
     from kivy.app import App
 
     class TestApp(App):
@@ -1047,6 +1115,7 @@ if __name__ == '__main__':
                     ymax=1,
                     **graph_theme)
 
+
             plot = SmoothLinePlot(color=next(colors))
             plot.points = [(x / 10., sin(x / 50.)) for x in range(-500, 501)]
             graph.add_plot(plot)
@@ -1062,10 +1131,56 @@ if __name__ == '__main__':
 
             Clock.schedule_interval(self.update_points, 1 / 60.)
 
-            return graph
+
+            graph2 = Graph(
+                    xlabel='Position (m)',
+                    ylabel='Time (s)',
+                    x_ticks_minor=0,
+                    x_ticks_major=1,
+                    y_ticks_major=10,
+                    y_grid_label=True,
+                    x_grid_label=True,
+                    padding=5,
+                    xlog=False,
+                    ylog=False,
+                    xmin=0,
+                    ymin=0,
+                    **graph_theme)
+
+
+
+            import numpy as np
+            omega = 2 * pi / 30
+            k = (2 * pi) / 5.0
+
+            d = 100                 # resolution
+            data = np.ones((d, d))
+
+            position = [ii * 0.1 for ii in range(d)]
+            time = [ii * 0.6 for ii in range(d)]
+
+            for ii, t in enumerate(time):
+                for jj, x in enumerate(position):
+                    data[ii,jj] = sin(k * x + omega * t) + sin(-k * x + omega * t)
+            # This is required to fit the graph to the data extents
+            graph2.xmax = max(position)
+            graph2.ymax = max(time)
+
+
+            plot = ContourPlot()
+            plot.data = data.tolist()
+            plot.xrange = [min(position), max(position)]
+            plot.yrange = [min(time), max(time)]
+            plot.color = [1, 0, 0, 1]
+            graph2.add_plot(plot)
+
+
+            b = BoxLayout(orientation='vertical')
+            b.add_widget(graph)
+            b.add_widget(graph2)
+            return b
 
         def update_points(self, *args):
             self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-600, 501)]
-
 
     TestApp().run()
