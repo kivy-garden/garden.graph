@@ -1018,7 +1018,6 @@ class ContourPlot(Plot):
     xrange = ListProperty([0, 100])
     yrange = ListProperty([0, 100])
 
-    # Important to note that you must put **kwargs for custom classes otherwise instantiating in the kv file complains.
     def __init__(self, **kwargs):
         super(ContourPlot, self).__init__(**kwargs)
         self.bind(data=self.ask_draw, xrange=self.ask_draw, yrange=self.ask_draw)
@@ -1052,9 +1051,7 @@ class ContourPlot(Plot):
         self._texture = Texture.create(size=(xdim, ydim), colorfmt='rgb')
         self._texture.blit_buffer(charbuf, colorfmt='rgb', bufferfmt='ubyte')
         image = self._image
-        # Set the cross section to display the data stored as a texture
         image.texture = self._texture
-        # Set the position of the cross section to the graph size
 
         params = self._params
         funcx = log10 if params['xlog'] else lambda x: x
