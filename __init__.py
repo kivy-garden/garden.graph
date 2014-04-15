@@ -875,7 +875,7 @@ class MeshLinePlot(Plot):
     def create_drawings(self):
         self._color = Color(*self.color)
         self._mesh = Mesh(mode='line_strip')
-        self.bind(color=lambda instr, value: setattr(self._color, 'rgba', value))
+        self.bind(color=lambda instr, value: setattr(self._color.rgba, value))
         return [self._color, self._mesh]
 
     def draw(self, *args):
