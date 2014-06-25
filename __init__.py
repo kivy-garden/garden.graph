@@ -70,6 +70,10 @@ from kivy.lang import Builder
 from kivy import metrics
 from math import log10, floor, ceil
 from decimal import Decimal
+try:
+    import numpy as np
+except ImportError as e:
+    np = None
 
 Builder.load_string('''
 #:kivy 1.1.0
@@ -1010,11 +1014,13 @@ class SmoothLinePlot(Plot):
 
 class ContourPlot(Plot):
     """
-    This class generates a plot of 3D data and displays it as an intensity map image.
+    ContourPlot visualizes 3 dimensional data as an intensity map image.
     The user must first specify 'xrange' and 'yrange' (tuples of min,max) and then 'data', the intensity values.
+    X and Y values are assumed to be linearly spaced values from xrange/yrange and the dimensions of 'data'.
+    The color values are automatically scaled to the min and max z range of the data set.
     """
     _image = ObjectProperty(None)
-    data = ListProperty([])
+    data = ObjectProperty(None)
     xrange = ListProperty([0, 100])
     yrange = ListProperty([0, 100])
 
@@ -1029,22 +1035,22 @@ class ContourPlot(Plot):
         return [self._color, self._image]
 
     def draw(self, *args):
-        import numpy as np
         data = self.data
-        xdim, ydim = len(data), len(data[0])
-        buf = np.zeros((xdim, ydim, 3), dtype=int)
-        zmax, zmin = max(data[0]), min(data[0])
+        xdim, ydim = data.shape
 
         # Find the minimum and maximum z values
-        for ii in range(xdim):
-            for jj in range(ydim):
-                z = data[ii][jj]
-                zmax, zmin = max(z, zmax), min(z, zmin)
+        zmax = data.max()
+        zmin = data.min()
+        rgb_scale_factor = 1.0 / (zmax - zmin) * 255
         # Scale the z values into RGB data
-        for ii in range(xdim):
-            for jj in range(ydim):
-                z = data[ii][jj]
-                buf[ii, jj, :] = int( (z - zmin) / (zmax-zmin) * 255)
+        buf = np.array(data, dtype=float, copy=True)
+        np.subtract(buf, zmin, out=buf)
+        np.multiply(buf, rgb_scale_factor, out=buf)
+        # Duplicate into 3 dimensions (RGB) and convert to byte array
+        buf = np.asarray(buf, dtype=np.uint8)
+        buf = np.expand_dims(buf, axis=2)
+        buf = np.concatenate((buf, buf, buf), axis=2)
+        buf = np.reshape(buf, (xdim, ydim, 3))
 
         flatbuf = np.reshape(buf, (buf.size))
         charbuf = ''.join(map(chr, flatbuf))
@@ -1081,7 +1087,7 @@ if __name__ == '__main__':
     class TestApp(App):
 
         def build(self):
-
+            b = BoxLayout(orientation='vertical')
             # example of a custom theme
             colors = itertools.cycle([
                 rgb('7dac9f'), rgb('dc7062'), rgb('66a8d4'), rgb('e5b060')])
@@ -1143,38 +1149,37 @@ if __name__ == '__main__':
                     xmin=0,
                     ymin=0,
                     **graph_theme)
-
-
-
-            import numpy as np
-            omega = 2 * pi / 30
-            k = (2 * pi) / 5.0
-
-            d = 100                 # resolution
-            data = np.ones((d, d))
-
-            position = [ii * 0.1 for ii in range(d)]
-            time = [ii * 0.6 for ii in range(d)]
-
-            for ii, t in enumerate(time):
-                for jj, x in enumerate(position):
-                    data[ii,jj] = sin(k * x + omega * t) + sin(-k * x + omega * t)
-            # This is required to fit the graph to the data extents
-            graph2.xmax = max(position)
-            graph2.ymax = max(time)
-
-
-            plot = ContourPlot()
-            plot.data = data.tolist()
-            plot.xrange = [min(position), max(position)]
-            plot.yrange = [min(time), max(time)]
-            plot.color = [1, 0, 0, 1]
-            graph2.add_plot(plot)
-
-
-            b = BoxLayout(orientation='vertical')
             b.add_widget(graph)
-            b.add_widget(graph2)
+
+
+            if np is not None:
+                omega = 2 * pi / 30
+                k = (2 * pi) / 2.0
+
+
+                npoints = 100
+                data = np.ones((npoints, npoints))
+
+                position = [ii * 0.1 for ii in range(npoints)]
+                time = [ii * 0.6 for ii in range(npoints)]
+
+                for ii, t in enumerate(time):
+                    for jj, x in enumerate(position):
+                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t)
+
+                # This is required to fit the graph to the data extents
+                graph2.xmax = max(position)
+                graph2.ymax = max(time)
+
+                plot = ContourPlot()
+                plot.data = data
+                plot.xrange = [min(position), max(position)]
+                plot.yrange = [min(time), max(time)]
+                plot.color = [1, 0.7, 0.2, 1]
+                graph2.add_plot(plot)
+
+                b.add_widget(graph2)
+
             return b
 
         def update_points(self, *args):
