@@ -1039,8 +1039,9 @@ class SmoothLinePlot(Plot):
         # very first time, create a texture for the shader
         if not hasattr(SmoothLinePlot, '_texture'):
             tex = Texture.create(size=(1, 64), colorfmt='rgb')
-            tex.blit_buffer(SmoothLinePlot.GRADIENT_DATA, colorfmt='rgb')
+            tex.add_reload_observer(SmoothLinePlot._smooth_reload_observer)
             SmoothLinePlot._texture = tex
+            SmoothLinePlot._smooth_reload_observer(tex)
 
         self._grc = RenderContext(fs=SmoothLinePlot.SMOOTH_FS,
                 use_parent_modelview=True,
@@ -1051,6 +1052,10 @@ class SmoothLinePlot(Plot):
                     texture=SmoothLinePlot._texture)
 
         return [self._grc]
+
+    @staticmethod
+    def _smooth_reload_observer(texture):
+        texture.blit_buffer(SmoothLinePlot.GRADIENT_DATA, colorfmt="rgb")
 
     def draw(self, *args):
         super(SmoothLinePlot, self).draw(*args)
