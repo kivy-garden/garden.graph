@@ -60,6 +60,7 @@ from kivy.uix.stencilview import StencilView
 from kivy.properties import NumericProperty, BooleanProperty,\
     BoundedNumericProperty, StringProperty, ListProperty, ObjectProperty,\
     DictProperty, AliasProperty
+from kivy.compat import PY3
 from kivy.clock import Clock
 from kivy.graphics import Mesh, Color, Rectangle
 from kivy.graphics import Fbo
@@ -1102,7 +1103,10 @@ class ContourPlot(Plot):
         buf = np.reshape(buf, (xdim, ydim, 3))
 
         flatbuf = np.reshape(buf, (buf.size))
-        charbuf = ''.join(map(chr, flatbuf))
+        if PY3:
+            charbuf = ''.join(map(chr, flatbuf)).encode('ascii')
+        else:
+            charbuf = ''.join(map(chr, flatbuf))
         self._texture = Texture.create(size=(xdim, ydim), colorfmt='rgb')
         self._texture.blit_buffer(charbuf, colorfmt='rgb', bufferfmt='ubyte')
         image = self._image
