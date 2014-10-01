@@ -552,6 +552,12 @@ class Graph(Widget):
         self._update_ticks(size)
         self._update_plots(size)
 
+    def _clear_buffer(self, *largs):
+        fbo = self._fbo
+        fbo.bind()
+        fbo.clear_buffer()
+        fbo.release()
+
     def add_plot(self, plot):
         '''Add a new plot to this graph.
 
@@ -569,6 +575,7 @@ class Graph(Widget):
         add = self._plot_area.canvas.add
         for instr in plot.get_drawings():
             add(instr)
+        plot.bind(on_clear_plot=self._clear_buffer)
         self.plots.append(plot)
 
     def remove_plot(self, plot):
@@ -589,6 +596,7 @@ class Graph(Widget):
         remove = self._plot_area.canvas.remove
         for instr in plot.get_drawings():
             remove(instr)
+        plot.unbind(on_clear_plot=self._clear_buffer)
         self.plots.remove(plot)
 
     xmin = NumericProperty(0.)
@@ -790,7 +798,17 @@ class Graph(Widget):
 
 class Plot(EventDispatcher):
     '''Plot class, see module documentation for more information.
+
+    :Events:
+        `on_clear_plot`
+            Fired before a plot updates the display and lets the fbo know that
+            it should clear the old drawings.
+
+    ..versionadded:: 0.4
     '''
+
+    __events__ = ('on_clear_plot', )
+
     # most recent values of the params used to draw the plot
     params = DictProperty({'xlog': False, 'xmin': 0, 'xmax': 100,
                             'ylog': False, 'ymin': 0, 'ymax': 100,
@@ -845,9 +863,10 @@ class Plot(EventDispatcher):
     def create_drawings(self):
         pass
 
-    # draw the plot according to the params
-    def draw(self):
-        pass
+    # draw the plot according to the params. It dispatches on_clear_plot
+    # so derived classes should call super before updating.
+    def draw(self, *largs):
+        self.dispatch('on_clear_plot')
 
     def iterate_points(self):
         '''Iterate on all the points adjusted to the graph settings
@@ -864,6 +883,9 @@ class Plot(EventDispatcher):
             yield (
                 (funcx(x) - xmin) * ratiox + size[0],
                 (funcy(y) - ymin) * ratioy + size[1])
+
+    def on_clear_plot(self, *largs):
+        pass
 
 
     # compatibility layer
@@ -883,6 +905,7 @@ class MeshLinePlot(Plot):
         return [self._color, self._mesh]
 
     def draw(self, *args):
+        super(MeshLinePlot, self).draw(*args)
         points = self.points
         mesh = self._mesh
         vert = mesh.vertices
@@ -926,6 +949,7 @@ class MeshStemPlot(MeshLinePlot):
     '''
 
     def draw(self, *args):
+        super(MeshStemPlot, self).draw(*args)
         points = self.points
         mesh = self._mesh
         self._mesh.mode = 'lines'
@@ -1005,6 +1029,7 @@ class SmoothLinePlot(Plot):
         return [self._grc]
 
     def draw(self, *args):
+        super(SmoothLinePlot, self).draw(*args)
         # flatten the list
         points = []
         for x, y in self.iterate_points():
@@ -1035,6 +1060,7 @@ class ContourPlot(Plot):
         return [self._color, self._image]
 
     def draw(self, *args):
+        super(ContourPlot, self).draw(*args)
         data = self.data
         xdim, ydim = data.shape
 
