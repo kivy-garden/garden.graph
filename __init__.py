@@ -102,6 +102,8 @@ class Graph(Widget):
     _trigger = ObjectProperty(None)
     # triggers only a repositioning of objects due to size/pos updates
     _trigger_size = ObjectProperty(None)
+    # triggers only a update of colors, e.g. tick_color
+    _trigger_color = ObjectProperty(None)
     # holds widget with the x-axis label
     _xlabel = ObjectProperty(None)
     # holds widget with the y-axis label
@@ -162,21 +164,17 @@ class Graph(Widget):
         self._plot_area = StencilView()
         self.add_widget(self._plot_area)
 
-        self._trigger = Clock.create_trigger(self._redraw_all)
-        self._trigger_size = Clock.create_trigger(self._redraw_size)
+        t = self._trigger = Clock.create_trigger(self._redraw_all)
+        ts = self._trigger_size = Clock.create_trigger(self._redraw_size)
+        tc = self._trigger_color = Clock.create_trigger(self._update_colors)
 
-        self.bind(center=self._trigger_size, padding=self._trigger_size,
-                  font_size=self._trigger_size, plots=self._trigger_size,
-                  x_grid=self._trigger_size, y_grid=self._trigger_size,
-                  draw_border=self._trigger_size)
-        self.bind(xmin=self._trigger, xmax=self._trigger,
-                  xlog=self._trigger, x_ticks_major=self._trigger,
-                  x_ticks_minor=self._trigger,
-                  xlabel=self._trigger, x_grid_label=self._trigger,
-                  ymin=self._trigger, ymax=self._trigger,
-                  ylog=self._trigger, y_ticks_major=self._trigger,
-                  y_ticks_minor=self._trigger,
-                  ylabel=self._trigger, y_grid_label=self._trigger)
+        self.bind(center=ts, padding=ts, precision=ts, plots=ts, x_grid=ts,
+                  y_grid=ts, draw_border=ts)
+        self.bind(xmin=t, xmax=t, xlog=t, x_ticks_major=t, x_ticks_minor=t,
+                  xlabel=t, x_grid_label=t, ymin=t, ymax=t, ylog=t,
+                  y_ticks_major=t, y_ticks_minor=t, ylabel=t, y_grid_label=t,
+                  font_size=t, label_options=t)
+        self.bind(tick_color=tc, background_color=tc, border_color=tc)
         self._trigger()
 
     def add_widget(self, widget):
@@ -486,6 +484,11 @@ class Graph(Widget):
         ymax = self.ymax
         for plot in self.plots:
             plot._update(xlog, xmin, xmax, ylog, ymin, ymax, size)
+
+    def _update_colors(self, *args):
+        self._mesh_ticks_color.rgba = tuple(self.tick_color)
+        self._background_color.rgba = tuple(self.background_color)
+        self._mesh_rect_color.rgba = tuple(self.border_color)
 
     def _redraw_all(self, *args):
         # add/remove all the required labels
