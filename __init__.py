@@ -450,7 +450,7 @@ class Graph(Widget):
                 vert[k * 8 + 5] = top
             start += len(xpoints)
         if len(xpoints2):
-            top = metrics.dp(12) + size[1]
+            top = metrics.dp(8) + size[1]
             ratio = (size[2] - size[0]) / float(xmax - xmin)
             for k in range(start, len(xpoints2) + start):
                 vert[k * 8] = size[0] + (xpoints2[k - start] - xmin) * ratio
@@ -468,7 +468,7 @@ class Graph(Widget):
                 vert[k * 8 + 4] = top
             start += len(ypoints)
         if len(ypoints2):
-            top = metrics.dp(12) + size[0]
+            top = metrics.dp(8) + size[0]
             ratio = (size[3] - size[1]) / float(ymax - ymin)
             for k in range(start, len(ypoints2) + start):
                 vert[k * 8 + 1] = size[1] + (ypoints2[k - start] - ymin) * ratio
