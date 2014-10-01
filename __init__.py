@@ -426,6 +426,8 @@ class Graph(Widget):
         start = 0
         xpoints = self._ticks_majorx
         ypoints = self._ticks_majory
+        xpoints2 = self._ticks_minorx
+        ypoints2 = self._ticks_minory
         ylog = self.ylog
         xlog = self.xlog
         xmin = self.xmin
@@ -447,11 +449,29 @@ class Graph(Widget):
                 vert[k * 8 + 4] = vert[k * 8]
                 vert[k * 8 + 5] = top
             start += len(xpoints)
+        if len(xpoints2):
+            top = metrics.dp(12) + size[1]
+            ratio = (size[2] - size[0]) / float(xmax - xmin)
+            for k in range(start, len(xpoints2) + start):
+                vert[k * 8] = size[0] + (xpoints2[k - start] - xmin) * ratio
+                vert[k * 8 + 1] = size[1]
+                vert[k * 8 + 4] = vert[k * 8]
+                vert[k * 8 + 5] = top
+            start += len(xpoints2)
         if len(ypoints):
             top = size[2] if self.y_grid else metrics.dp(12) + size[0]
             ratio = (size[3] - size[1]) / float(ymax - ymin)
             for k in range(start, len(ypoints) + start):
                 vert[k * 8 + 1] = size[1] + (ypoints[k - start] - ymin) * ratio
+                vert[k * 8 + 5] = vert[k * 8 + 1]
+                vert[k * 8] = size[0]
+                vert[k * 8 + 4] = top
+            start += len(ypoints)
+        if len(ypoints2):
+            top = metrics.dp(12) + size[0]
+            ratio = (size[3] - size[1]) / float(ymax - ymin)
+            for k in range(start, len(ypoints2) + start):
+                vert[k * 8 + 1] = size[1] + (ypoints2[k - start] - ymin) * ratio
                 vert[k * 8 + 5] = vert[k * 8 + 1]
                 vert[k * 8] = size[0]
                 vert[k * 8 + 4] = top
