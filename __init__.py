@@ -621,6 +621,7 @@ class Graph(Widget):
             remove(instr)
         plot.unbind(on_clear_plot=self._clear_buffer)
         self.plots.remove(plot)
+        self._clear_buffer()
 
     xmin = NumericProperty(0.)
     '''The x-axis minimum value.
