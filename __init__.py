@@ -50,7 +50,7 @@ The current availables plots are:
 
 '''
 
-__all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot', 'SmoothLinePlot', 'ContourPlot')
+__all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot', 'LinePlot', 'SmoothLinePlot', 'ContourPlot')
 __version__ = '0.4-dev'
 
 from math import radians
@@ -1001,6 +1001,37 @@ class MeshStemPlot(MeshLinePlot):
         mesh.vertices = vert
 
 
+class LinePlot(Plot):
+    '''LinePlot draws using a standard Line object.
+    '''
+    
+    '''Args:
+    line_width (float) - the width of the graph line
+    '''
+    def __init__(self, **kwargs):
+        self._line_width = kwargs.get('line_width', 1)
+        super(LinePlot, self).__init__(**kwargs)
+    
+    def create_drawings(self):
+        from kivy.graphics import Line, RenderContext
+
+        self._grc = RenderContext(
+                use_parent_modelview=True,
+                use_parent_projection=True)
+        with self._grc:
+            self._gcolor = Color(*self.color)
+            self._gline = Line(points=[], cap='none', width=self._line_width, joint='round')
+
+        return [self._grc]
+    
+    def draw(self, *args):
+        super(LinePlot, self).draw(*args)
+        # flatten the list
+        points = []
+        for x, y in self.iterate_points():
+            points += [x, y]
+        self._gline.points = points
+        
 class SmoothLinePlot(Plot):
     '''Smooth Plot class, see module documentation for more information.
     This plot use a specific Fragment shader for a custom anti aliasing.
