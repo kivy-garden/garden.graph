@@ -4,7 +4,7 @@ Graph
 
 The :class:`Graph` widget is a widget for displaying plots. It supports
 drawing multiple plot with different colors on the Graph. It also supports
-a title, ticks, labeled ticks, grids and a log or linear representation on
+axes titles, ticks, labeled ticks, grids and a log or linear representation on
 both the x and y axis, independently.
 
 To display a plot. First create a graph which will function as a "canvas" for
@@ -777,11 +777,12 @@ class Graph(Widget):
     '''
 
     padding = NumericProperty('5dp')
-    '''Padding distances between the labels, titles and graph, as well between
-    the widget and the objects near the boundaries.
+    '''Padding distances between the labels, axes titles and graph, as
+    well between the widget and the objects near the boundaries.
 
     :data:`padding` is a :class:`~kivy.properties.NumericProperty`, defaults
     to 5dp.
+
     '''
 
     font_size = NumericProperty('15sp')
