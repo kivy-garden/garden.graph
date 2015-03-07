@@ -330,8 +330,8 @@ class Graph(Widget):
             ylabels[0].texture_update()
             y1 = ylabels[0].texture_size
             y_start = y_next + (padding + y1[1] if len(xlabels) and xlabel_grid
-                                else 0) +\
-                                (padding + y1[1] if not y_next else 0)
+                                else 0) + \
+                               (padding + y1[1] if not y_next else 0)
             yextent = y + height - padding - y1[1] / 2.
             if self.ylog:
                 ymax = log10(ymax)
@@ -387,10 +387,10 @@ class Graph(Widget):
             t = Matrix().translate(ylabel.center[0], ylabel.center[1], 0)
             t = t.multiply(Matrix().rotate(-radians(270), 0, 0, 1))
             ylabel.transform = t.multiply(
-                    Matrix().translate(
-                        -int(ylabel.center_x),
-                        -int(ylabel.center_y),
-                        0))
+                Matrix().translate(
+                    -int(ylabel.center_x),
+                    -int(ylabel.center_y),
+                    0))
         if x_overlap:
             for k in range(len(xlabels)):
                 xlabels[k].text = ''
@@ -834,8 +834,8 @@ class Plot(EventDispatcher):
 
     # most recent values of the params used to draw the plot
     params = DictProperty({'xlog': False, 'xmin': 0, 'xmax': 100,
-                            'ylog': False, 'ymin': 0, 'ymax': 100,
-                            'size': (0, 0, 0, 0)})
+                           'ylog': False, 'ymin': 0, 'ymax': 100,
+                           'size': (0, 0, 0, 0)})
 
     color = ListProperty([1, 1, 1, 1])
     '''Color of the plot.
@@ -910,7 +910,6 @@ class Plot(EventDispatcher):
     def on_clear_plot(self, *largs):
         pass
 
-
     # compatibility layer
     _update = update
     _get_drawings = get_drawings
@@ -952,7 +951,6 @@ class MeshLinePlot(Plot):
             vert[k * 4] = (funcx(points[k][0]) - xmin) * ratiox + size[0]
             vert[k * 4 + 1] = (funcy(points[k][1]) - ymin) * ratioy + size[1]
         mesh.vertices = vert
-
 
     def _set_mode(self, value):
         if hasattr(self, '_mesh'):
@@ -1033,7 +1031,6 @@ class SmoothLinePlot(Plot):
 
     def create_drawings(self):
         from kivy.graphics import Line, RenderContext
-        from kivy.graphics.texture import Texture
 
         # very first time, create a texture for the shader
         if not hasattr(SmoothLinePlot, '_texture'):
@@ -1129,7 +1126,6 @@ class ContourPlot(Plot):
         image.size = (w, h)
 
 
-
 if __name__ == '__main__':
     import itertools
     from math import sin, cos, pi
@@ -1153,24 +1149,23 @@ if __name__ == '__main__':
                 'border_color': rgb('808080')}  # border drawn around each graph
 
             graph = Graph(
-                    xlabel='Cheese',
-                    ylabel='Apples',
-                    x_ticks_minor=5,
-                    x_ticks_major=25,
-                    y_ticks_major=1,
-                    y_grid_label=True,
-                    x_grid_label=True,
-                    padding=5,
-                    xlog=False,
-                    ylog=False,
-                    x_grid=True,
-                    y_grid=True,
-                    xmin=-50,
-                    xmax=50,
-                    ymin=-1,
-                    ymax=1,
-                    **graph_theme)
-
+                xlabel='Cheese',
+                ylabel='Apples',
+                x_ticks_minor=5,
+                x_ticks_major=25,
+                y_ticks_major=1,
+                y_grid_label=True,
+                x_grid_label=True,
+                padding=5,
+                xlog=False,
+                ylog=False,
+                x_grid=True,
+                y_grid=True,
+                xmin=-50,
+                xmax=50,
+                ymin=-1,
+                ymax=1,
+                **graph_theme)
 
             plot = SmoothLinePlot(color=next(colors))
             plot.points = [(x / 10., sin(x / 50.)) for x in range(-500, 501)]
@@ -1188,30 +1183,27 @@ if __name__ == '__main__':
 
             Clock.schedule_interval(self.update_points, 1 / 60.)
 
-
             graph2 = Graph(
-                    xlabel='Position (m)',
-                    ylabel='Time (s)',
-                    x_ticks_minor=0,
-                    x_ticks_major=1,
-                    y_ticks_major=10,
-                    y_grid_label=True,
-                    x_grid_label=True,
-                    padding=5,
-                    xlog=False,
-                    ylog=False,
-                    xmin=0,
-                    ymin=0,
-                    **graph_theme)
+                xlabel='Position (m)',
+                ylabel='Time (s)',
+                x_ticks_minor=0,
+                x_ticks_major=1,
+                y_ticks_major=10,
+                y_grid_label=True,
+                x_grid_label=True,
+                padding=5,
+                xlog=False,
+                ylog=False,
+                xmin=0,
+                ymin=0,
+                **graph_theme)
             b.add_widget(graph)
-
 
             if np is not None:
                 (xbounds, ybounds, data) = self.make_contour_data()
                 # This is required to fit the graph to the data extents
                 graph2.xmin, graph2.xmax = xbounds
                 graph2.ymin, graph2.ymax = ybounds
-                
 
                 plot = ContourPlot()
                 plot.data = data
@@ -1240,14 +1232,11 @@ if __name__ == '__main__':
 
                 for ii, t in enumerate(time):
                     for jj, x in enumerate(position):
-                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t)/ts
+                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t) / ts
                 return ((0, max(position)), (0, max(time)), data)
-
-
 
         def update_points(self, *args):
             self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-500, 501)]
-
 
         def update_contour(self, *args):
             _, _, self.contourplot.data[:] = self.make_contour_data(Clock.get_time())  
@@ -1259,6 +1248,5 @@ if __name__ == '__main__':
             # (you have to use np.all).  Ideally, property should be patched 
             # for this.
             self.contourplot.ask_draw()
-            
 
     TestApp().run()
