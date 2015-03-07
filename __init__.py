@@ -1207,36 +1207,58 @@ if __name__ == '__main__':
 
 
             if np is not None:
-                omega = 2 * pi / 30
-                k = (2 * pi) / 2.0
-
-
-                npoints = 100
-                data = np.ones((npoints, npoints))
-
-                position = [ii * 0.1 for ii in range(npoints)]
-                time = [ii * 0.6 for ii in range(npoints)]
-
-                for ii, t in enumerate(time):
-                    for jj, x in enumerate(position):
-                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t)
-
+                (xbounds, ybounds, data) = self.make_contour_data()
                 # This is required to fit the graph to the data extents
-                graph2.xmax = max(position)
-                graph2.ymax = max(time)
+                graph2.xmin, graph2.xmax = xbounds
+                graph2.ymin, graph2.ymax = ybounds
+                
 
                 plot = ContourPlot()
                 plot.data = data
-                plot.xrange = [min(position), max(position)]
-                plot.yrange = [min(time), max(time)]
+                plot.xrange = xbounds
+                plot.yrange = ybounds
                 plot.color = [1, 0.7, 0.2, 1]
                 graph2.add_plot(plot)
 
                 b.add_widget(graph2)
+                self.contourplot = plot
+
+                Clock.schedule_interval(self.update_contour, 1 / 60.)
 
             return b
 
+        def make_contour_data(self, ts=0):
+                omega = 2 * pi / 30
+                k = (2 * pi) / 2.0
+
+                ts = sin(ts * 2) + 1.5  # emperically determined 'pretty' values
+                npoints = 100
+                data = np.ones((npoints, npoints))
+
+                position = [ii * 0.1 for ii in range(npoints)]
+                time = [(ii % 100) * 0.6 for ii in range(npoints)]
+
+                for ii, t in enumerate(time):
+                    for jj, x in enumerate(position):
+                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t)/ts
+                return ((0, max(position)), (0, max(time)), data)
+
+
+
         def update_points(self, *args):
             self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-500, 501)]
+
+
+        def update_contour(self, *args):
+            _, _, self.contourplot.data[:] = self.make_contour_data(Clock.get_time())  
+            # this does not trigger an update, because we replace the
+            # values of the arry and do not change the object.
+            # However, we cannot do "...data = make_contour_data()" as
+            # kivy will try to check for the identity of the new and
+            # old values.  In numpy, 'nd1 == nd2' leads to an error
+            # (you have to use np.all).  Ideally, property should be patched 
+            # for this.
+            self.contourplot.ask_draw()
+            
 
     TestApp().run()
