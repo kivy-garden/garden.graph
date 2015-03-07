@@ -1178,7 +1178,7 @@ if __name__ == '__main__':
             graph.add_plot(plot)
 
             plot = MeshLinePlot(color=next(colors))
-            plot.points = [(x / 10., cos(x / 50.)) for x in range(-600, 501)]
+            plot.points = [(x / 10., cos(x / 50.)) for x in range(-500, 501)]
             graph.add_plot(plot)
             self.plot = plot  # this is the moving graph, so keep a reference
 
@@ -1237,6 +1237,6 @@ if __name__ == '__main__':
             return b
 
         def update_points(self, *args):
-            self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-600, 501)]
+            self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-500, 501)]
 
     TestApp().run()
