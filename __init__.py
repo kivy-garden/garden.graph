@@ -1146,11 +1146,11 @@ if __name__ == '__main__':
                 rgb('7dac9f'), rgb('dc7062'), rgb('66a8d4'), rgb('e5b060')])
             graph_theme = {
                 'label_options': {
-                    'color': rgb('444444'),
+                    'color': rgb('444444'),  # color of tick labels and titles
                     'bold': True},
-                'background_color': rgb('f8f8f2'),
-                'tick_color': rgb('808080'),
-                'border_color': rgb('808080')}
+                'background_color': rgb('f8f8f2'),  # back ground color of canvas
+                'tick_color': rgb('808080'),  # ticks and grid
+                'border_color': rgb('808080')}  # border drawn around each graph
 
             graph = Graph(
                     xlabel='Cheese',
@@ -1174,12 +1174,13 @@ if __name__ == '__main__':
 
             plot = SmoothLinePlot(color=next(colors))
             plot.points = [(x / 10., sin(x / 50.)) for x in range(-500, 501)]
+            # for efficiency, the x range matches xmin, xmax 
             graph.add_plot(plot)
 
             plot = MeshLinePlot(color=next(colors))
             plot.points = [(x / 10., cos(x / 50.)) for x in range(-600, 501)]
             graph.add_plot(plot)
-            self.plot = plot
+            self.plot = plot  # this is the moving graph, so keep a reference
 
             plot = MeshStemPlot(color=next(colors))
             graph.add_plot(plot)
