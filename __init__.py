@@ -330,8 +330,8 @@ class Graph(Widget):
             ylabels[0].texture_update()
             y1 = ylabels[0].texture_size
             y_start = y_next + (padding + y1[1] if len(xlabels) and xlabel_grid
-                                else 0) +\
-                                (padding + y1[1] if not y_next else 0)
+                                else 0) + \
+                               (padding + y1[1] if not y_next else 0)
             yextent = y + height - padding - y1[1] / 2.
             if self.ylog:
                 ymax = log10(ymax)
@@ -387,10 +387,10 @@ class Graph(Widget):
             t = Matrix().translate(ylabel.center[0], ylabel.center[1], 0)
             t = t.multiply(Matrix().rotate(-radians(270), 0, 0, 1))
             ylabel.transform = t.multiply(
-                    Matrix().translate(
-                        -int(ylabel.center_x),
-                        -int(ylabel.center_y),
-                        0))
+                Matrix().translate(
+                    -int(ylabel.center_x),
+                    -int(ylabel.center_y),
+                    0))
         if x_overlap:
             for k in range(len(xlabels)):
                 xlabels[k].text = ''
@@ -835,8 +835,8 @@ class Plot(EventDispatcher):
 
     # most recent values of the params used to draw the plot
     params = DictProperty({'xlog': False, 'xmin': 0, 'xmax': 100,
-                            'ylog': False, 'ymin': 0, 'ymax': 100,
-                            'size': (0, 0, 0, 0)})
+                           'ylog': False, 'ymin': 0, 'ymax': 100,
+                           'size': (0, 0, 0, 0)})
 
     color = ListProperty([1, 1, 1, 1])
     '''Color of the plot.
@@ -911,7 +911,6 @@ class Plot(EventDispatcher):
     def on_clear_plot(self, *largs):
         pass
 
-
     # compatibility layer
     _update = update
     _get_drawings = get_drawings
@@ -953,7 +952,6 @@ class MeshLinePlot(Plot):
             vert[k * 4] = (funcx(points[k][0]) - xmin) * ratiox + size[0]
             vert[k * 4 + 1] = (funcy(points[k][1]) - ymin) * ratioy + size[1]
         mesh.vertices = vert
-
 
     def _set_mode(self, value):
         if hasattr(self, '_mesh'):
@@ -1065,7 +1063,6 @@ class SmoothLinePlot(Plot):
 
     def create_drawings(self):
         from kivy.graphics import Line, RenderContext
-        from kivy.graphics.texture import Texture
 
         # very first time, create a texture for the shader
         if not hasattr(SmoothLinePlot, '_texture'):
@@ -1161,7 +1158,6 @@ class ContourPlot(Plot):
         image.size = (w, h)
 
 
-
 if __name__ == '__main__':
     import itertools
     from math import sin, cos, pi
@@ -1178,40 +1174,40 @@ if __name__ == '__main__':
                 rgb('7dac9f'), rgb('dc7062'), rgb('66a8d4'), rgb('e5b060')])
             graph_theme = {
                 'label_options': {
-                    'color': rgb('444444'),
+                    'color': rgb('444444'),  # color of tick labels and titles
                     'bold': True},
-                'background_color': rgb('f8f8f2'),
-                'tick_color': rgb('808080'),
-                'border_color': rgb('808080')}
+                'background_color': rgb('f8f8f2'),  # back ground color of canvas
+                'tick_color': rgb('808080'),  # ticks and grid
+                'border_color': rgb('808080')}  # border drawn around each graph
 
             graph = Graph(
-                    xlabel='Cheese',
-                    ylabel='Apples',
-                    x_ticks_minor=5,
-                    x_ticks_major=25,
-                    y_ticks_major=1,
-                    y_grid_label=True,
-                    x_grid_label=True,
-                    padding=5,
-                    xlog=False,
-                    ylog=False,
-                    x_grid=True,
-                    y_grid=True,
-                    xmin=-50,
-                    xmax=50,
-                    ymin=-1,
-                    ymax=1,
-                    **graph_theme)
-
+                xlabel='Cheese',
+                ylabel='Apples',
+                x_ticks_minor=5,
+                x_ticks_major=25,
+                y_ticks_major=1,
+                y_grid_label=True,
+                x_grid_label=True,
+                padding=5,
+                xlog=False,
+                ylog=False,
+                x_grid=True,
+                y_grid=True,
+                xmin=-50,
+                xmax=50,
+                ymin=-1,
+                ymax=1,
+                **graph_theme)
 
             plot = SmoothLinePlot(color=next(colors))
             plot.points = [(x / 10., sin(x / 50.)) for x in range(-500, 501)]
+            # for efficiency, the x range matches xmin, xmax 
             graph.add_plot(plot)
 
             plot = MeshLinePlot(color=next(colors))
-            plot.points = [(x / 10., cos(x / 50.)) for x in range(-600, 501)]
+            plot.points = [(x / 10., cos(x / 50.)) for x in range(-500, 501)]
             graph.add_plot(plot)
-            self.plot = plot
+            self.plot = plot  # this is the moving graph, so keep a reference
 
             plot = MeshStemPlot(color=next(colors))
             graph.add_plot(plot)
@@ -1219,55 +1215,70 @@ if __name__ == '__main__':
 
             Clock.schedule_interval(self.update_points, 1 / 60.)
 
-
             graph2 = Graph(
-                    xlabel='Position (m)',
-                    ylabel='Time (s)',
-                    x_ticks_minor=0,
-                    x_ticks_major=1,
-                    y_ticks_major=10,
-                    y_grid_label=True,
-                    x_grid_label=True,
-                    padding=5,
-                    xlog=False,
-                    ylog=False,
-                    xmin=0,
-                    ymin=0,
-                    **graph_theme)
+                xlabel='Position (m)',
+                ylabel='Time (s)',
+                x_ticks_minor=0,
+                x_ticks_major=1,
+                y_ticks_major=10,
+                y_grid_label=True,
+                x_grid_label=True,
+                padding=5,
+                xlog=False,
+                ylog=False,
+                xmin=0,
+                ymin=0,
+                **graph_theme)
             b.add_widget(graph)
 
-
             if np is not None:
-                omega = 2 * pi / 30
-                k = (2 * pi) / 2.0
-
-
-                npoints = 100
-                data = np.ones((npoints, npoints))
-
-                position = [ii * 0.1 for ii in range(npoints)]
-                time = [ii * 0.6 for ii in range(npoints)]
-
-                for ii, t in enumerate(time):
-                    for jj, x in enumerate(position):
-                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t)
-
+                (xbounds, ybounds, data) = self.make_contour_data()
                 # This is required to fit the graph to the data extents
-                graph2.xmax = max(position)
-                graph2.ymax = max(time)
+                graph2.xmin, graph2.xmax = xbounds
+                graph2.ymin, graph2.ymax = ybounds
 
                 plot = ContourPlot()
                 plot.data = data
-                plot.xrange = [min(position), max(position)]
-                plot.yrange = [min(time), max(time)]
+                plot.xrange = xbounds
+                plot.yrange = ybounds
                 plot.color = [1, 0.7, 0.2, 1]
                 graph2.add_plot(plot)
 
                 b.add_widget(graph2)
+                self.contourplot = plot
+
+                Clock.schedule_interval(self.update_contour, 1 / 60.)
 
             return b
 
+        def make_contour_data(self, ts=0):
+                omega = 2 * pi / 30
+                k = (2 * pi) / 2.0
+
+                ts = sin(ts * 2) + 1.5  # emperically determined 'pretty' values
+                npoints = 100
+                data = np.ones((npoints, npoints))
+
+                position = [ii * 0.1 for ii in range(npoints)]
+                time = [(ii % 100) * 0.6 for ii in range(npoints)]
+
+                for ii, t in enumerate(time):
+                    for jj, x in enumerate(position):
+                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t) / ts
+                return ((0, max(position)), (0, max(time)), data)
+
         def update_points(self, *args):
-            self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-600, 501)]
+            self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-500, 501)]
+
+        def update_contour(self, *args):
+            _, _, self.contourplot.data[:] = self.make_contour_data(Clock.get_time())  
+            # this does not trigger an update, because we replace the
+            # values of the arry and do not change the object.
+            # However, we cannot do "...data = make_contour_data()" as
+            # kivy will try to check for the identity of the new and
+            # old values.  In numpy, 'nd1 == nd2' leads to an error
+            # (you have to use np.all).  Ideally, property should be patched 
+            # for this.
+            self.contourplot.ask_draw()
 
     TestApp().run()
