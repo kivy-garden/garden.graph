@@ -621,6 +621,33 @@ class Graph(Widget):
             remove(instr)
         plot.unbind(on_clear_plot=self._clear_buffer)
         self.plots.remove(plot)
+    
+    def collide_plot(self, x, y):
+        '''Determine if the given coordinates fall inside the plot area.
+
+        :Parameters:
+            `x, y`:
+                The coordinates to test (in window coords).
+        '''
+        rect = self._update_labels()
+        adj_x, adj_y = x - self.pos[0], y - self.pos[1]
+        return rect[0] <= adj_x <= rect[2] and rect[1] <= adj_y <= rect[3]
+    
+    def to_data(self, x, y):
+        '''Convert window coords to data coords.
+        
+        :Parameters:
+            `x, y`:
+                The coordinates to convert (in window coords).
+        '''
+        rect = self._update_labels()
+        adj_x = float(x - self.pos[0])
+        adj_y = float(y - self.pos[1])
+        norm_x = (adj_x - rect[0]) / (rect[2] - rect[0])
+        norm_y = (adj_y - rect[1]) / (rect[3] - rect[1])
+        conv_x = norm_x * (self.xmax - self.xmin) + self.xmin
+        conv_y = norm_y * (self.ymax - self.ymin) + self.ymin
+        return [conv_x, conv_y]
 
     xmin = NumericProperty(0.)
     '''The x-axis minimum value.
