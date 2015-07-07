@@ -630,8 +630,8 @@ class Graph(Widget):
                 The coordinates to test (in window coords).
         '''
         adj_x, adj_y = x - self._plot_area.pos[0], y - self._plot_area.pos[1]
-        return all([0 <= adj_x <= self._plot_area.size[0],
-                    0 <= adj_y <= self._plot_area.size[1]])
+        return 0 <= adj_x <= self._plot_area.size[0] \
+               and 0 <= adj_y <= self._plot_area.size[1]
     
     def to_data(self, x, y):
         '''Convert window coords to data coords.
