@@ -75,6 +75,13 @@ try:
 except ImportError as e:
     np = None
 
+
+def identity(x):
+    return x
+
+def exp10(x):
+    return 10 ** x
+
 Builder.load_string('''
 #:kivy 1.1.0
 
@@ -326,22 +333,22 @@ class Graph(Widget):
         # now x and y tick mark labels
         if len(ylabels) and ylabel_grid:
             # horizontal size of the largest tick label, to have enough room
-            ylabels[0].text = precision % ypoints[0]
+            funcexp = exp10 if self.ylog else identity
+            funclog = log10 if self.ylog else identity
+            ylabels[0].text = precision % funcexp(ypoints[0])
             ylabels[0].texture_update()
             y1 = ylabels[0].texture_size
             y_start = y_next + (padding + y1[1] if len(xlabels) and xlabel_grid
                                 else 0) + \
                                (padding + y1[1] if not y_next else 0)
             yextent = y + height - padding - y1[1] / 2.
-            if self.ylog:
-                ymax = log10(ymax)
-                ymin = log10(ymin)
-            ratio = (yextent - y_start) / float(ymax - ymin)
+
+            ymin = funclog(ymin)
+            ratio = (yextent - y_start) / float(funclog(ymax) - ymin)
             y_start -= y1[1] / 2.
-            func = (lambda x: 10 ** x) if self.ylog else lambda x: x
             y1 = y1[0]
             for k in range(len(ylabels)):
-                ylabels[k].text = precision % func(ypoints[k])
+                ylabels[k].text = precision % funcexp(ypoints[k])
                 ylabels[k].texture_update()
                 ylabels[k].size = ylabels[k].texture_size
                 y1 = max(y1, ylabels[k].texture_size[0])
@@ -352,22 +359,22 @@ class Graph(Widget):
             else:
                 x_next += y1 + padding
         if len(xlabels) and xlabel_grid:
-            func = log10 if self.xlog else lambda x: x
+            funcexp = exp10 if self.xlog else identity
+            funclog = log10 if self.xlog else identity
             # find the distance from the end that'll fit the last tick label
-            xlabels[0].text = precision % func(xpoints[-1])
+            xlabels[0].text = precision % funcexp(xpoints[-1])
             xlabels[0].texture_update()
             xextent = x + width - xlabels[0].texture_size[0] / 2. - padding
             # find the distance from the start that'll fit the first tick label
             if not x_next:
-                xlabels[0].text = precision % func(xpoints[0])
+                xlabels[0].text = precision % funcexp(xpoints[0])
                 xlabels[0].texture_update()
                 x_next = padding + xlabels[0].texture_size[0] / 2.
-            xmin = func(xmin)
-            ratio = (xextent - x_next) / float(func(self.xmax) - xmin)
-            func = (lambda x: 10 ** x) if self.xlog else lambda x: x
+            xmin = funclog(xmin)
+            ratio = (xextent - x_next) / float(funclog(self.xmax) - xmin)
             right = -1
             for k in range(len(xlabels)):
-                xlabels[k].text = precision % func(xpoints[k])
+                xlabels[k].text = precision % funcexp(xpoints[k])
                 # update the size so we can center the labels on ticks
                 xlabels[k].texture_update()
                 xlabels[k].size = xlabels[k].texture_size
