@@ -644,8 +644,16 @@ class Graph(Widget):
         adj_y = float(y - self._plot_area.pos[1])
         norm_x = adj_x / self._plot_area.size[0]
         norm_y = adj_y / self._plot_area.size[1]
-        conv_x = norm_x * (self.xmax - self.xmin) + self.xmin
-        conv_y = norm_y * (self.ymax - self.ymin) + self.ymin
+        if self.xlog:
+            xmin, xmax = log10(self.xmin), log10(self.xmax)
+            conv_x = 10.**(norm_x * (xmax - xmin) + xmin)
+        else:
+            conv_x = norm_x * (self.xmax - self.xmin) + self.xmin
+        if self.ylog:
+            ymin, ymax = log10(self.ymin), log10(self.ymax)
+            conv_y = 10.**(norm_y * (ymax - ymin) + ymin)
+        else:
+            conv_y = norm_y * (self.ymax - self.ymin) + self.ymin
         return [conv_x, conv_y]
 
     xmin = NumericProperty(0.)
