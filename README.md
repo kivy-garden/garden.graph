@@ -18,6 +18,7 @@ respectively, y major ticks every 1 units, full x and y grids and with
 a red line plot containing a sin wave on this range::
 
 ```python
+from math import sin
 from kivy.garden.graph import Graph, MeshLinePlot
 graph = Graph(xlabel='X', ylabel='Y', x_ticks_minor=5,
 x_ticks_major=25, y_ticks_major=1,
