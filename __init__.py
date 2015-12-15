@@ -145,12 +145,23 @@ class Graph(Widget):
     label_options = DictProperty()
     '''Label options that will be passed to `:class:`kivy.uix.Label`.
     '''
+    
+    _with_stencilbuffer = BooleanProperty(True)
+    '''Whether :class:`Graph`'s FBO should use FrameBuffer (True) or not (False).
+    
+    .. warning:: This property is internal and so should be used with care. It can break
+    some other graphic instructions used by the :class:`Graph`, for example you can have
+    problems when drawing :class:`SmoothLinePlot` plots, so use it only when you know
+    what exactly you are doing.
+    
+    :data:`_with_stencilbuffer` is a :class:`~kivy.properties.BooleanProperty`, defaults
+    to True.'''
 
     def __init__(self, **kwargs):
         super(Graph, self).__init__(**kwargs)
 
         with self.canvas:
-            self._fbo = Fbo(size=self.size, with_stencilbuffer=True)
+            self._fbo = Fbo(size=self.size, with_stencilbuffer=self._with_stencilbuffer)
 
         with self._fbo:
             self._background_color = Color(*self.background_color)
