@@ -63,7 +63,6 @@ from kivy.properties import NumericProperty, BooleanProperty,\
 from kivy.clock import Clock
 from kivy.graphics import Mesh, Color, Rectangle
 from kivy.graphics import Fbo
-from kivy.graphics.transformation import Matrix
 from kivy.graphics.texture import Texture
 from kivy.event import EventDispatcher
 from kivy.lang import Builder
@@ -88,8 +87,6 @@ Builder.load_string('''
 <RotateLabel>:
     canvas.before:
         PushMatrix
-        MatrixInstruction:
-            matrix: self.transform
         Rotate:
             angle: root.angle
             axis: 0, 0, 1
@@ -102,7 +99,6 @@ Builder.load_string('''
 
 class RotateLabel(Label):
 
-    transform = ObjectProperty(Matrix())
     angle = NumericProperty()
 
 
@@ -407,13 +403,7 @@ class Graph(Widget):
             xlabel.x = int(x_next + (xextent - x_next) / 2. - xlabel.width / 2.)
         if ylabel:
             ylabel.y = int(y_next + (yextent - y_next) / 2. - ylabel.height / 2.)
-            t = Matrix().translate(ylabel.center[0], ylabel.center[1], 0)
-            t = t.multiply(Matrix().rotate(-radians(270), 0, 0, 1))
-            ylabel.transform = t.multiply(
-                Matrix().translate(
-                    -int(ylabel.center_x),
-                    -int(ylabel.center_y),
-                    0))
+            ylabel.angle = 90
         if x_overlap:
             for k in range(len(xlabels)):
                 xlabels[k].text = ''
