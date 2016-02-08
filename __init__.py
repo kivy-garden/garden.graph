@@ -515,12 +515,24 @@ class Graph(Widget):
 
     def _redraw_all(self, *args):
         # add/remove all the required labels
+        xpoints_major, xpoints_minor = self._redraw_x(*args)
+        ypoints_major, ypoints_minor = self._redraw_y(*args)
+
+        mesh = self._mesh_ticks
+        n_points = (len(xpoints_major) + len(xpoints_minor) +
+                    len(ypoints_major) + len(ypoints_minor))
+        mesh.vertices = [0] * (n_points * 8)
+        mesh.indices = [k for k in range(n_points * 2)]
+        self._redraw_size()
+
+    def _redraw_x(self, *args):
         font_size = self.font_size
         if self.xlabel:
-            if not self._xlabel:
-                xlabel = Label(font_size=font_size, **self.label_options)
-                self.add_widget(xlabel)
-                self._xlabel = xlabel
+            if self._xlabel:
+                self.remove_widget(self._xlabel)
+            xlabel = Label(font_size=font_size, **self.label_options)
+            self.add_widget(xlabel)
+            self._xlabel = xlabel
         else:
             xlabel = self._xlabel
             if xlabel:
@@ -539,7 +551,9 @@ class Graph(Widget):
             n_labels = len(xpoints_major)
         for k in range(n_labels, len(grids)):
             self.remove_widget(grids[k])
-        del grids[n_labels:]
+        for x_tick in grids:
+            self.remove_widget(x_tick)
+        del grids[:n_labels]
         grid_len = len(grids)
         grids.extend([None] * (n_labels - len(grids)))
         for k in range(grid_len, n_labels):
@@ -547,12 +561,16 @@ class Graph(Widget):
                                    angle=self.x_ticks_angle,
                                    **self.label_options)
             self.add_widget(grids[k])
+        return xpoints_major, xpoints_minor
 
+    def _redraw_y(self, *args):
+        font_size = self.font_size
         if self.ylabel:
-            if not self._ylabel:
-                ylabel = RotateLabel(font_size=font_size, **self.label_options)
-                self.add_widget(ylabel)
-                self._ylabel = ylabel
+            if self._ylabel:
+                self.remove_widget(self._ylabel)
+            ylabel = RotateLabel(font_size=font_size, **self.label_options)
+            self.add_widget(ylabel)
+            self._ylabel = ylabel
         else:
             ylabel = self._ylabel
             if ylabel:
@@ -571,19 +589,15 @@ class Graph(Widget):
             n_labels = len(ypoints_major)
         for k in range(n_labels, len(grids)):
             self.remove_widget(grids[k])
-        del grids[n_labels:]
+        for y_tick in grids:
+            self.remove_widget(y_tick)
+        del grids[:n_labels]
         grid_len = len(grids)
         grids.extend([None] * (n_labels - len(grids)))
         for k in range(grid_len, n_labels):
             grids[k] = Label(font_size=font_size, **self.label_options)
             self.add_widget(grids[k])
-
-        mesh = self._mesh_ticks
-        n_points = (len(xpoints_major) + len(xpoints_minor) +
-                    len(ypoints_major) + len(ypoints_minor))
-        mesh.vertices = [0] * (n_points * 8)
-        mesh.indices = [k for k in range(n_points * 2)]
-        self._redraw_size()
+        return ypoints_major, ypoints_minor
 
     def _redraw_size(self, *args):
         # size a 4-tuple describing the bounding box in which we can draw
