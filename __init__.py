@@ -90,6 +90,10 @@ Builder.load_string('''
         PushMatrix
         MatrixInstruction:
             matrix: self.transform
+        Rotate:
+            angle: root.angle
+            axis: 0, 0, 1
+            origin: root.center
     canvas.after:
         PopMatrix
 
@@ -99,6 +103,7 @@ Builder.load_string('''
 class RotateLabel(Label):
 
     transform = ObjectProperty(Matrix())
+    angle = NumericProperty()
 
 
 class Graph(Widget):
@@ -191,7 +196,7 @@ class Graph(Widget):
         self.bind(xmin=t, xmax=t, xlog=t, x_ticks_major=t, x_ticks_minor=t,
                   xlabel=t, x_grid_label=t, ymin=t, ymax=t, ylog=t,
                   y_ticks_major=t, y_ticks_minor=t, ylabel=t, y_grid_label=t,
-                  font_size=t, label_options=t)
+                  font_size=t, label_options=t, x_ticks_angle=t)
         self.bind(tick_color=tc, background_color=tc, border_color=tc)
         self._trigger()
 
@@ -538,7 +543,9 @@ class Graph(Widget):
         grid_len = len(grids)
         grids.extend([None] * (n_labels - len(grids)))
         for k in range(grid_len, n_labels):
-            grids[k] = Label(font_size=font_size, **self.label_options)
+            grids[k] = RotateLabel(font_size=font_size,
+                                   angle=self.x_ticks_angle,
+                                   **self.label_options)
             self.add_widget(grids[k])
 
         if self.ylabel:
@@ -834,7 +841,6 @@ class Graph(Widget):
 
     :data:`padding` is a :class:`~kivy.properties.NumericProperty`, defaults
     to 5dp.
-
     '''
 
     font_size = NumericProperty('15sp')
@@ -842,6 +848,13 @@ class Graph(Widget):
 
     :data:`font_size` is a :class:`~kivy.properties.NumericProperty`, defaults
     to 15sp.
+    '''
+
+    x_ticks_angle = NumericProperty(0)
+    '''Rotate angle of the x-axis tick marks.
+
+    :data:`x_ticks_angle` is a :class:`~kivy.properties.NumericProperty`,
+    defaults to 0.
     '''
 
     precision = StringProperty('%g')
