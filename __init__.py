@@ -53,7 +53,6 @@ The current availables plots are:
 __all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot', 'LinePlot', 'SmoothLinePlot', 'ContourPlot')
 __version__ = '0.4-dev'
 
-from math import radians
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.uix.stencilview import StencilView
@@ -1321,20 +1320,20 @@ if __name__ == '__main__':
             return b
 
         def make_contour_data(self, ts=0):
-                omega = 2 * pi / 30
-                k = (2 * pi) / 2.0
+            omega = 2 * pi / 30
+            k = (2 * pi) / 2.0
 
-                ts = sin(ts * 2) + 1.5  # emperically determined 'pretty' values
-                npoints = 100
-                data = np.ones((npoints, npoints))
+            ts = sin(ts * 2) + 1.5  # emperically determined 'pretty' values
+            npoints = 100
+            data = np.ones((npoints, npoints))
 
-                position = [ii * 0.1 for ii in range(npoints)]
-                time = [(ii % 100) * 0.6 for ii in range(npoints)]
+            position = [ii * 0.1 for ii in range(npoints)]
+            time = [(ii % 100) * 0.6 for ii in range(npoints)]
 
-                for ii, t in enumerate(time):
-                    for jj, x in enumerate(position):
-                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t) / ts
-                return ((0, max(position)), (0, max(time)), data)
+            for ii, t in enumerate(time):
+                for jj, x in enumerate(position):
+                    data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t) / ts
+            return ((0, max(position)), (0, max(time)), data)
 
         def update_points(self, *args):
             self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-500, 501)]
