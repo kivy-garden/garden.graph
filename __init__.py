@@ -145,15 +145,15 @@ class Graph(Widget):
     label_options = DictProperty()
     '''Label options that will be passed to `:class:`kivy.uix.Label`.
     '''
-    
+
     _with_stencilbuffer = BooleanProperty(True)
     '''Whether :class:`Graph`'s FBO should use FrameBuffer (True) or not (False).
-    
+
     .. warning:: This property is internal and so should be used with care. It can break
     some other graphic instructions used by the :class:`Graph`, for example you can have
     problems when drawing :class:`SmoothLinePlot` plots, so use it only when you know
     what exactly you are doing.
-    
+
     :data:`_with_stencilbuffer` is a :class:`~kivy.properties.BooleanProperty`, defaults
     to True.'''
 
@@ -639,7 +639,7 @@ class Graph(Widget):
             remove(instr)
         plot.unbind(on_clear_plot=self._clear_buffer)
         self.plots.remove(plot)
-    
+
     def collide_plot(self, x, y):
         '''Determine if the given coordinates fall inside the plot area.
 
@@ -650,10 +650,10 @@ class Graph(Widget):
         adj_x, adj_y = x - self._plot_area.pos[0], y - self._plot_area.pos[1]
         return 0 <= adj_x <= self._plot_area.size[0] \
                and 0 <= adj_y <= self._plot_area.size[1]
-    
+
     def to_data(self, x, y):
         '''Convert window coords to data coords.
-        
+
         :Parameters:
             `x, y`:
                 The coordinates to convert (in window coords).
@@ -910,38 +910,43 @@ class Plot(EventDispatcher):
         self.bind(params=self.ask_draw, points=self.ask_draw)
         self._drawings = self.create_drawings()
 
-    # this function is called by graph whenever any of the parameters
-    # change. The plot should be recalculated then.
-    # log, min, max indicate the axis settings.
-    # size a 4-tuple describing the bounding box in which we can draw
-    # graphs, it's (x0, y0, x1, y1), which correspond with the bottom left
-    # and top right corner locations, respectively.
     def update(self, xlog, xmin, xmax, ylog, ymin, ymax, size):
+        '''Called by graph whenever any of the parameters
+        change. The plot should be recalculated then.
+        log, min, max indicate the axis settings.
+        size a 4-tuple describing the bounding box in which we can draw
+        graphs, it's (x0, y0, x1, y1), which correspond with the bottom left
+        and top right corner locations, respectively.
+        '''
         self.params.update({
             'xlog': xlog, 'xmin': xmin, 'xmax': xmax, 'ylog': ylog,
             'ymin': ymin, 'ymax': ymax, 'size': size})
 
-    # returns a string which is unique and is the group name given to all the
-    # instructions returned by _get_drawings. Graph uses this to remove
-    # these instructions when needed.
     def get_group(self):
+        '''returns a string which is unique and is the group name given to all
+        the instructions returned by _get_drawings. Graph uses this to remove
+        these instructions when needed.
+        '''
         return ''
 
-    # returns a list of canvas instructions that will be added to the graph's
-    # canvas.
     def get_drawings(self):
+        '''returns a list of canvas instructions that will be added to the
+        graph's canvas.
+        '''
         if isinstance(self._drawings, (tuple, list)):
             return self._drawings
         return []
 
-    # method called once to create all the canvas instructions needed for the
-    # plot
     def create_drawings(self):
+        '''called once to create all the canvas instructions needed for the
+        plot
+        '''
         pass
 
-    # draw the plot according to the params. It dispatches on_clear_plot
-    # so derived classes should call super before updating.
     def draw(self, *largs):
+        '''draw the plot according to the params. It dispatches on_clear_plot
+        so derived classes should call super before updating.
+        '''
         self.dispatch('on_clear_plot')
 
     def iterate_points(self):
@@ -953,8 +958,12 @@ class Plot(EventDispatcher):
         xmin = funcx(params['xmin'])
         ymin = funcy(params['ymin'])
         size = params['size']
-        ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
-        ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
+        try:
+            ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
+            ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
+        except ZeroDivisionError:
+            return
+
         for x, y in self.points:
             yield (
                 (funcx(x) - xmin) * ratiox + size[0],
@@ -981,33 +990,29 @@ class MeshLinePlot(Plot):
 
     def draw(self, *args):
         super(MeshLinePlot, self).draw(*args)
-        points = self.points
         mesh = self._mesh
         vert = mesh.vertices
         ind = mesh.indices
-        params = self._params
-        funcx = log10 if params['xlog'] else lambda x: x
-        funcy = log10 if params['ylog'] else lambda x: x
-        xmin = funcx(params['xmin'])
-        ymin = funcy(params['ymin'])
+
+        points = [p for p in self.iterate_points()]
         diff = len(points) - len(vert) // 4
-        size = params['size']
-        ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
-        ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
+
         if diff < 0:
             del vert[4 * len(points):]
             del ind[len(points):]
         elif diff > 0:
             ind.extend(range(len(ind), len(ind) + diff))
             vert.extend([0] * (diff * 4))
-        for k in range(len(points)):
-            vert[k * 4] = (funcx(points[k][0]) - xmin) * ratiox + size[0]
-            vert[k * 4 + 1] = (funcy(points[k][1]) - ymin) * ratioy + size[1]
+
+        for k, (x, y) in enumerate(points):
+            vert[k * 4] = x
+            vert[k * 4 + 1] = y
         mesh.vertices = vert
 
     def _set_mode(self, value):
         if hasattr(self, '_mesh'):
             self._mesh.mode = value
+
     mode = AliasProperty(lambda self: self._mesh.mode, _set_mode)
     '''VBO Mode used for drawing the points. Can be one of: 'points',
     'line_strip', 'line_loop', 'lines', 'triangle_strip', 'triangle_fan'.
@@ -1024,45 +1029,47 @@ class MeshStemPlot(MeshLinePlot):
 
     def draw(self, *args):
         super(MeshStemPlot, self).draw(*args)
-        points = self.points
         mesh = self._mesh
         self._mesh.mode = 'lines'
         vert = mesh.vertices
         ind = mesh.indices
+
         params = self._params
-        funcx = log10 if params['xlog'] else lambda x: x
-        funcy = log10 if params['ylog'] else lambda x: x
-        xmin = funcx(params['xmin'])
-        ymin = funcy(params['ymin'])
-        diff = len(points) * 2 - len(vert) // 4
         size = params['size']
-        ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
-        ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
+        funcy = log10 if params['ylog'] else lambda x: x
+        ymin = funcy(params['ymin'])
+        denom = float(funcy(params['ymax']) - ymin)
+        ratioy = (size[3] - size[1]) / denom if denom else 0
+
+        points = [p for p in self.iterate_points()]
+        diff = len(points) * 2 - len(vert) // 4
+
         if diff < 0:
             del vert[4 * len(points):]
             del ind[len(points):]
         elif diff > 0:
             ind.extend(range(len(ind), len(ind) + diff))
             vert.extend([0] * (diff * 4))
-        for k in range(len(points)):
-            vert[k * 8] = (funcx(points[k][0]) - xmin) * ratiox + size[0]
+
+        for k, (x, y) in enumerate(points):
+            vert[k * 8] = x
             vert[k * 8 + 1] = (0 - ymin) * ratioy + size[1]
-            vert[k * 8 + 4] = (funcx(points[k][0]) - xmin) * ratiox + size[0]
-            vert[k * 8 + 5] = (funcy(points[k][1]) - ymin) * ratioy + size[1]
+            vert[k * 8 + 4] = x
+            vert[k * 8 + 5] = y
         mesh.vertices = vert
 
 
 class LinePlot(Plot):
     '''LinePlot draws using a standard Line object.
     '''
-    
+
     '''Args:
     line_width (float) - the width of the graph line
     '''
     def __init__(self, **kwargs):
         self._line_width = kwargs.get('line_width', 1)
         super(LinePlot, self).__init__(**kwargs)
-    
+
     def create_drawings(self):
         from kivy.graphics import Line, RenderContext
 
@@ -1074,7 +1081,7 @@ class LinePlot(Plot):
             self._gline = Line(points=[], cap='none', width=self._line_width, joint='round')
 
         return [self._grc]
-    
+
     def draw(self, *args):
         super(LinePlot, self).draw(*args)
         # flatten the list
@@ -1082,7 +1089,8 @@ class LinePlot(Plot):
         for x, y in self.iterate_points():
             points += [x, y]
         self._gline.points = points
-        
+
+
 class SmoothLinePlot(Plot):
     '''Smooth Plot class, see module documentation for more information.
     This plot use a specific Fragment shader for a custom anti aliasing.
@@ -1253,7 +1261,7 @@ if __name__ == '__main__':
 
             plot = SmoothLinePlot(color=next(colors))
             plot.points = [(x / 10., sin(x / 50.)) for x in range(-500, 501)]
-            # for efficiency, the x range matches xmin, xmax 
+            # for efficiency, the x range matches xmin, xmax
             graph.add_plot(plot)
 
             plot = MeshLinePlot(color=next(colors))
@@ -1323,13 +1331,13 @@ if __name__ == '__main__':
             self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-500, 501)]
 
         def update_contour(self, *args):
-            _, _, self.contourplot.data[:] = self.make_contour_data(Clock.get_time())  
+            _, _, self.contourplot.data[:] = self.make_contour_data(Clock.get_time())
             # this does not trigger an update, because we replace the
             # values of the arry and do not change the object.
             # However, we cannot do "...data = make_contour_data()" as
             # kivy will try to check for the identity of the new and
             # old values.  In numpy, 'nd1 == nd2' leads to an error
-            # (you have to use np.all).  Ideally, property should be patched 
+            # (you have to use np.all).  Ideally, property should be patched
             # for this.
             self.contourplot.ask_draw()
 
