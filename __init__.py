@@ -53,7 +53,6 @@ The current availables plots are:
 __all__ = ('Graph', 'Plot', 'MeshLinePlot', 'MeshStemPlot', 'LinePlot', 'SmoothLinePlot', 'ContourPlot')
 __version__ = '0.4-dev'
 
-from math import radians
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.uix.stencilview import StencilView
@@ -63,7 +62,6 @@ from kivy.properties import NumericProperty, BooleanProperty,\
 from kivy.clock import Clock
 from kivy.graphics import Mesh, Color, Rectangle
 from kivy.graphics import Fbo
-from kivy.graphics.transformation import Matrix
 from kivy.graphics.texture import Texture
 from kivy.event import EventDispatcher
 from kivy.lang import Builder
@@ -88,8 +86,10 @@ Builder.load_string('''
 <RotateLabel>:
     canvas.before:
         PushMatrix
-        MatrixInstruction:
-            matrix: self.transform
+        Rotate:
+            angle: root.angle
+            axis: 0, 0, 1
+            origin: root.center
     canvas.after:
         PopMatrix
 
@@ -98,7 +98,7 @@ Builder.load_string('''
 
 class RotateLabel(Label):
 
-    transform = ObjectProperty(Matrix())
+    angle = NumericProperty()
 
 
 class Graph(Widget):
@@ -191,7 +191,7 @@ class Graph(Widget):
         self.bind(xmin=t, xmax=t, xlog=t, x_ticks_major=t, x_ticks_minor=t,
                   xlabel=t, x_grid_label=t, ymin=t, ymax=t, ylog=t,
                   y_ticks_major=t, y_ticks_minor=t, ylabel=t, y_grid_label=t,
-                  font_size=t, label_options=t)
+                  font_size=t, label_options=t, x_ticks_angle=t)
         self.bind(tick_color=tc, background_color=tc, border_color=tc)
         self._trigger()
 
@@ -402,13 +402,7 @@ class Graph(Widget):
             xlabel.x = int(x_next + (xextent - x_next) / 2. - xlabel.width / 2.)
         if ylabel:
             ylabel.y = int(y_next + (yextent - y_next) / 2. - ylabel.height / 2.)
-            t = Matrix().translate(ylabel.center[0], ylabel.center[1], 0)
-            t = t.multiply(Matrix().rotate(-radians(270), 0, 0, 1))
-            ylabel.transform = t.multiply(
-                Matrix().translate(
-                    -int(ylabel.center_x),
-                    -int(ylabel.center_y),
-                    0))
+            ylabel.angle = 90
         if x_overlap:
             for k in range(len(xlabels)):
                 xlabels[k].text = ''
@@ -510,12 +504,24 @@ class Graph(Widget):
 
     def _redraw_all(self, *args):
         # add/remove all the required labels
+        xpoints_major, xpoints_minor = self._redraw_x(*args)
+        ypoints_major, ypoints_minor = self._redraw_y(*args)
+
+        mesh = self._mesh_ticks
+        n_points = (len(xpoints_major) + len(xpoints_minor) +
+                    len(ypoints_major) + len(ypoints_minor))
+        mesh.vertices = [0] * (n_points * 8)
+        mesh.indices = [k for k in range(n_points * 2)]
+        self._redraw_size()
+
+    def _redraw_x(self, *args):
         font_size = self.font_size
         if self.xlabel:
-            if not self._xlabel:
-                xlabel = Label(font_size=font_size, **self.label_options)
-                self.add_widget(xlabel)
-                self._xlabel = xlabel
+            if self._xlabel:
+                self.remove_widget(self._xlabel)
+            xlabel = Label(font_size=font_size, **self.label_options)
+            self.add_widget(xlabel)
+            self._xlabel = xlabel
         else:
             xlabel = self._xlabel
             if xlabel:
@@ -534,18 +540,26 @@ class Graph(Widget):
             n_labels = len(xpoints_major)
         for k in range(n_labels, len(grids)):
             self.remove_widget(grids[k])
-        del grids[n_labels:]
+        for x_tick in grids:
+            self.remove_widget(x_tick)
+        del grids[:n_labels]
         grid_len = len(grids)
         grids.extend([None] * (n_labels - len(grids)))
         for k in range(grid_len, n_labels):
-            grids[k] = Label(font_size=font_size, **self.label_options)
+            grids[k] = RotateLabel(font_size=font_size,
+                                   angle=self.x_ticks_angle,
+                                   **self.label_options)
             self.add_widget(grids[k])
+        return xpoints_major, xpoints_minor
 
+    def _redraw_y(self, *args):
+        font_size = self.font_size
         if self.ylabel:
-            if not self._ylabel:
-                ylabel = RotateLabel(font_size=font_size, **self.label_options)
-                self.add_widget(ylabel)
-                self._ylabel = ylabel
+            if self._ylabel:
+                self.remove_widget(self._ylabel)
+            ylabel = RotateLabel(font_size=font_size, **self.label_options)
+            self.add_widget(ylabel)
+            self._ylabel = ylabel
         else:
             ylabel = self._ylabel
             if ylabel:
@@ -564,19 +578,15 @@ class Graph(Widget):
             n_labels = len(ypoints_major)
         for k in range(n_labels, len(grids)):
             self.remove_widget(grids[k])
-        del grids[n_labels:]
+        for y_tick in grids:
+            self.remove_widget(y_tick)
+        del grids[:n_labels]
         grid_len = len(grids)
         grids.extend([None] * (n_labels - len(grids)))
         for k in range(grid_len, n_labels):
             grids[k] = Label(font_size=font_size, **self.label_options)
             self.add_widget(grids[k])
-
-        mesh = self._mesh_ticks
-        n_points = (len(xpoints_major) + len(xpoints_minor) +
-                    len(ypoints_major) + len(ypoints_minor))
-        mesh.vertices = [0] * (n_points * 8)
-        mesh.indices = [k for k in range(n_points * 2)]
-        self._redraw_size()
+        return ypoints_major, ypoints_minor
 
     def _redraw_size(self, *args):
         # size a 4-tuple describing the bounding box in which we can draw
@@ -834,7 +844,6 @@ class Graph(Widget):
 
     :data:`padding` is a :class:`~kivy.properties.NumericProperty`, defaults
     to 5dp.
-
     '''
 
     font_size = NumericProperty('15sp')
@@ -842,6 +851,13 @@ class Graph(Widget):
 
     :data:`font_size` is a :class:`~kivy.properties.NumericProperty`, defaults
     to 15sp.
+    '''
+
+    x_ticks_angle = NumericProperty(0)
+    '''Rotate angle of the x-axis tick marks.
+
+    :data:`x_ticks_angle` is a :class:`~kivy.properties.NumericProperty`,
+    defaults to 0.
     '''
 
     precision = StringProperty('%g')
@@ -1312,20 +1328,20 @@ if __name__ == '__main__':
             return b
 
         def make_contour_data(self, ts=0):
-                omega = 2 * pi / 30
-                k = (2 * pi) / 2.0
+            omega = 2 * pi / 30
+            k = (2 * pi) / 2.0
 
-                ts = sin(ts * 2) + 1.5  # emperically determined 'pretty' values
-                npoints = 100
-                data = np.ones((npoints, npoints))
+            ts = sin(ts * 2) + 1.5  # emperically determined 'pretty' values
+            npoints = 100
+            data = np.ones((npoints, npoints))
 
-                position = [ii * 0.1 for ii in range(npoints)]
-                time = [(ii % 100) * 0.6 for ii in range(npoints)]
+            position = [ii * 0.1 for ii in range(npoints)]
+            time = [(ii % 100) * 0.6 for ii in range(npoints)]
 
-                for ii, t in enumerate(time):
-                    for jj, x in enumerate(position):
-                        data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t) / ts
-                return ((0, max(position)), (0, max(time)), data)
+            for ii, t in enumerate(time):
+                for jj, x in enumerate(position):
+                    data[ii, jj] = sin(k * x + omega * t) + sin(-k * x + omega * t) / ts
+            return ((0, max(position)), (0, max(time)), data)
 
         def update_points(self, *args):
             self.plot.points = [(x / 10., cos(Clock.get_time() + x / 50.)) for x in range(-500, 501)]
