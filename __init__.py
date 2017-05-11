@@ -517,11 +517,16 @@ class Graph(Widget):
     def _redraw_x(self, *args):
         font_size = self.font_size
         if self.xlabel:
-            if self._xlabel:
-                self.remove_widget(self._xlabel)
-            xlabel = Label(font_size=font_size, **self.label_options)
-            self.add_widget(xlabel)
-            self._xlabel = xlabel
+            xlabel = self._xlabel
+            if not xlabel:
+                xlabel = Label()
+                self.add_widget(xlabel)
+                self._xlabel = xlabel
+
+            xlabel.font_size = font_size
+            for k, v in self.label_options.items():
+                setattr(xlabel, k, v)
+
         else:
             xlabel = self._xlabel
             if xlabel:
@@ -534,15 +539,16 @@ class Graph(Widget):
                                                        self.xmax)
         self._ticks_majorx = xpoints_major
         self._ticks_minorx = xpoints_minor
+
         if not self.x_grid_label:
             n_labels = 0
         else:
             n_labels = len(xpoints_major)
+
         for k in range(n_labels, len(grids)):
             self.remove_widget(grids[k])
-        for x_tick in grids:
-            self.remove_widget(x_tick)
-        del grids[:n_labels]
+        del grids[n_labels:]
+
         grid_len = len(grids)
         grids.extend([None] * (n_labels - len(grids)))
         for k in range(grid_len, n_labels):
@@ -555,11 +561,15 @@ class Graph(Widget):
     def _redraw_y(self, *args):
         font_size = self.font_size
         if self.ylabel:
-            if self._ylabel:
-                self.remove_widget(self._ylabel)
-            ylabel = RotateLabel(font_size=font_size, **self.label_options)
-            self.add_widget(ylabel)
-            self._ylabel = ylabel
+            ylabel = self._ylabel
+            if not ylabel:
+                ylabel = Label()
+                self.add_widget(ylabel)
+                self._ylabel = ylabel
+
+            ylabel.font_size = font_size
+            for k, v in self.label_options.items():
+                setattr(ylabel, k, v)
         else:
             ylabel = self._ylabel
             if ylabel:
@@ -572,15 +582,16 @@ class Graph(Widget):
                                                        self.ymax)
         self._ticks_majory = ypoints_major
         self._ticks_minory = ypoints_minor
+
         if not self.y_grid_label:
             n_labels = 0
         else:
             n_labels = len(ypoints_major)
+
         for k in range(n_labels, len(grids)):
             self.remove_widget(grids[k])
-        for y_tick in grids:
-            self.remove_widget(y_tick)
-        del grids[:n_labels]
+        del grids[n_labels:]
+
         grid_len = len(grids)
         grids.extend([None] * (n_labels - len(grids)))
         for k in range(grid_len, n_labels):
@@ -592,10 +603,16 @@ class Graph(Widget):
         # size a 4-tuple describing the bounding box in which we can draw
         # graphs, it's (x0, y0, x1, y1), which correspond with the bottom left
         # and top right corner locations, respectively
+        self._clear_buffer()
         size = self._update_labels()
-        self._plot_area.pos = (size[0], size[1])
-        self._plot_area.size = (size[2] - size[0], size[3] - size[1])
-        self._fbo.size = self.size
+        self.view_pos = self._plot_area.pos = (size[0], size[1])
+        self.view_size = self._plot_area.size = (
+            size[2] - size[0], size[3] - size[1])
+
+        if self.size[0] and self.size[1]:
+            self._fbo.size = self.size
+        else:
+            self._fbo.size = 1, 1  # gl errors otherwise
         self._fbo_rect.texture = self._fbo.texture
         self._fbo_rect.size = self.size
         self._fbo_rect.pos = self.pos
@@ -887,6 +904,15 @@ class Graph(Widget):
     defaults to [].
     '''
 
+    view_size = ObjectProperty((0, 0))
+    '''The size of the graph viewing area - the area where the plots are
+    displayed, excluding labels etc.
+    '''
+
+    view_pos = ObjectProperty((0, 0))
+    '''The pos of the graph viewing area - the area where the plots are
+    displayed, excluding labels etc.
+    '''
 
 class Plot(EventDispatcher):
     '''Plot class, see module documentation for more information.
