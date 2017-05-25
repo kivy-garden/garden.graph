@@ -448,7 +448,7 @@ class Graph(Widget):
         ymin = self.ymin
         ymax = self.ymax
         if ylog:
-            xmin = log10(ymin)
+            ymin = log10(ymin)
             ymax = log10(ymax)
         if len(xpoints):
             top = size[3] if self.x_grid else metrics.dp(12) + size[1]
