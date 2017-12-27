@@ -709,6 +709,7 @@ class Graph(Widget):
             remove(instr)
         plot.unbind(on_clear_plot=self._clear_buffer)
         self.plots.remove(plot)
+        self._clear_buffer()
 
     def collide_plot(self, x, y):
         '''Determine if the given coordinates fall inside the plot area.
