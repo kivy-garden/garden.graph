@@ -1113,33 +1113,6 @@ class MeshLinePlot(Plot):
     '''MeshLinePlot class which displays a set of points similar to a mesh.
     '''
 
-    def create_drawings(self):
-        self._color = Color(*self.color)
-        self._mesh = Mesh(mode='line_strip')
-        self.bind(color=lambda instr, value: setattr(self._color, "rgba", value))
-        return [self._color, self._mesh]
-
-    def draw(self, *args):
-        super(MeshLinePlot, self).draw(*args)
-        mesh = self._mesh
-        vert = mesh.vertices
-        ind = mesh.indices
-
-        points = [p for p in self.iterate_points()]
-        diff = len(points) - len(vert) // 4
-
-        if diff < 0:
-            del vert[4 * len(points):]
-            del ind[len(points):]
-        elif diff > 0:
-            ind.extend(range(len(ind), len(ind) + diff))
-            vert.extend([0] * (diff * 4))
-
-        for k, (x, y) in enumerate(points):
-            vert[k * 4] = x
-            vert[k * 4 + 1] = y
-        mesh.vertices = vert
-
     def _set_mode(self, value):
         if hasattr(self, '_mesh'):
             self._mesh.mode = value
@@ -1152,29 +1125,47 @@ class MeshLinePlot(Plot):
     Defaults to 'line_strip'.
     '''
 
+    def create_drawings(self):
+        self._color = Color(*self.color)
+        self._mesh = Mesh(mode='line_strip')
+        self.bind(color=lambda instr, value: setattr(self._color, "rgba", value))
+        return [self._color, self._mesh]
+
+    def draw(self, *args):
+        super(MeshLinePlot, self).draw(*args)
+        self.plot_mesh()
+
+    def plot_mesh(self):
+        points = [p for p in self.iterate_points()]
+        mesh, vert, _ = self.set_mesh_size(len(points))
+        for k, (x, y) in enumerate(points):
+            vert[k * 4] = x
+            vert[k * 4 + 1] = y
+        mesh.vertices = vert
+
+    def set_mesh_size(self, size):
+        mesh = self._mesh
+        vert = mesh.vertices
+        ind = mesh.indices
+        diff = size - len(vert) // 4
+        if diff < 0:
+            del vert[4 * size:]
+            del ind[size:]
+        elif diff > 0:
+            ind.extend(range(len(ind), len(ind) + diff))
+            vert.extend([0] * (diff * 4))
+        mesh.vertices = vert
+        return mesh, vert, ind
+
 
 class MeshStemPlot(MeshLinePlot):
     '''MeshStemPlot uses the MeshLinePlot class to draw a stem plot. The data
     provided is graphed from origin to the data point.
     '''
 
-    def draw(self, *args):
-        super(MeshStemPlot, self).draw(*args)
-        mesh = self._mesh
-        self._mesh.mode = 'lines'
-        vert = mesh.vertices
-        ind = mesh.indices
-
+    def plot_mesh(self):
         points = [p for p in self.iterate_points()]
-        diff = len(points) * 2 - len(vert) // 4
-
-        if diff < 0:
-            del vert[4 * len(points):]
-            del ind[len(points):]
-        elif diff > 0:
-            ind.extend(range(len(ind), len(ind) + diff))
-            vert.extend([0] * (diff * 4))
-
+        mesh, vert, _ = self.set_mesh_size(len(points) * 2)
         y0 = self.y_px()(0)
         for k, (x, y) in enumerate(self.iterate_points()):
             vert[k * 8] = x
@@ -1185,15 +1176,10 @@ class MeshStemPlot(MeshLinePlot):
 
 
 class LinePlot(Plot):
-    '''LinePlot draws using a standard Line object.
-    '''
+    """LinePlot draws using a standard Line object.
+    """
 
-    '''Args:
-    line_width (float) - the width of the graph line
-    '''
-    def __init__(self, **kwargs):
-        self._line_width = kwargs.get('line_width', 1)
-        super(LinePlot, self).__init__(**kwargs)
+    line_width = NumericProperty(1)
 
     def create_drawings(self):
         from kivy.graphics import Line, RenderContext
@@ -1203,7 +1189,9 @@ class LinePlot(Plot):
                 use_parent_projection=True)
         with self._grc:
             self._gcolor = Color(*self.color)
-            self._gline = Line(points=[], cap='none', width=self._line_width, joint='round')
+            self._gline = Line(
+                points=[], cap='none',
+                width=self.line_width, joint='round')
 
         return [self._grc]
 
@@ -1214,6 +1202,10 @@ class LinePlot(Plot):
         for x, y in self.iterate_points():
             points += [x, y]
         self._gline.points = points
+
+    def on_line_width(self, *largs):
+        if hasattr(self, "_gline"):
+            self._gline.width = self.line_width
 
 
 class SmoothLinePlot(Plot):
@@ -1460,6 +1452,50 @@ class BarPlot(Plot):
     def unbind_from_graph(self):
         if self.graph:
             self._unbind_graph(self.graph)
+
+
+class HBar(MeshLinePlot):
+    '''HBar draw horizontal bar on all the Y points provided
+    '''
+
+    def plot_mesh(self, *args):
+        points = self.points
+        mesh, vert, ind = self.set_mesh_size(len(points) * 2)
+        mesh.mode = "lines"
+
+        bounds = self.get_px_bounds()
+        px_xmin = bounds["xmin"]
+        px_xmax = bounds["xmax"]
+        y_px = self.y_px()
+        for k, y in enumerate(points):
+            y = y_px(y)
+            vert[k * 8] = px_xmin
+            vert[k * 8 + 1] = y
+            vert[k * 8 + 4] = px_xmax
+            vert[k * 8 + 5] = y
+        mesh.vertices = vert
+
+
+class VBar(MeshLinePlot):
+    '''VBar draw vertical bar on all the X points provided
+    '''
+
+    def plot_mesh(self, *args):
+        points = self.points
+        mesh, vert, ind = self.set_mesh_size(len(points) * 2)
+        mesh.mode = "lines"
+
+        bounds = self.get_px_bounds()
+        px_ymin = bounds["ymin"]
+        px_ymax = bounds["ymax"]
+        x_px = self.x_px()
+        for k, x in enumerate(points):
+            x = x_px(x)
+            vert[k * 8] = x
+            vert[k * 8 + 1] = px_ymin
+            vert[k * 8 + 4] = x
+            vert[k * 8 + 5] = px_ymax
+        mesh.vertices = vert
 
 
 if __name__ == '__main__':
