@@ -1040,6 +1040,23 @@ class Plot(EventDispatcher):
         ratioy = (size[3] - size[1]) / float(ymax - ymin)
         return lambda y: (funcy(y) - ymin) * ratioy + size[1]
 
+    def unproject(self, x, y):
+        """Return a function that unproject a pixel to a X/Y value on the plot
+        (works only for linear, not log yet)
+        """
+        params = self.params
+        size = params["size"]
+        xmin = params["xmin"]
+        xmax = params["xmax"]
+        ymin = params["ymin"]
+        ymax = params["ymax"]
+        ratiox = (size[2] - size[0]) / float(xmax - xmin)
+        ratioy = (size[3] - size[1]) / float(ymax - ymin)
+        x0 = (x - size[0]) / ratiox + xmin
+        y0 = (y - size[1]) / ratioy + ymin
+        return x0, y0
+
+
     def get_px_bounds(self):
         """Returns a dict containing the pixels bounds from the plot parameters
         """
