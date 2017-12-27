@@ -65,6 +65,7 @@ from kivy.graphics import Fbo
 from kivy.graphics.texture import Texture
 from kivy.event import EventDispatcher
 from kivy.lang import Builder
+from kivy.logger import Logger
 from kivy import metrics
 from math import log10, floor, ceil
 from decimal import Decimal
@@ -77,13 +78,13 @@ except ImportError as e:
 def identity(x):
     return x
 
+
 def exp10(x):
     return 10 ** x
 
-Builder.load_string('''
-#:kivy 1.1.0
 
-<RotateLabel>:
+Builder.load_string("""
+<GraphRotatedLabel>:
     canvas.before:
         PushMatrix
         Rotate:
@@ -92,13 +93,23 @@ Builder.load_string('''
             origin: root.center
     canvas.after:
         PopMatrix
+""")
 
-''')
+
+class GraphRotatedLabel(Label):
+    angle = NumericProperty(0)
 
 
-class RotateLabel(Label):
+class Axis(EventDispatcher):
+    pass
 
-    angle = NumericProperty()
+
+class XAxis(Axis):
+    pass
+
+
+class YAxis(Axis):
+    pass
 
 
 class Graph(Widget):
@@ -155,7 +166,8 @@ class Graph(Widget):
     what exactly you are doing.
 
     :data:`_with_stencilbuffer` is a :class:`~kivy.properties.BooleanProperty`, defaults
-    to True.'''
+    to True.
+    '''
 
     def __init__(self, **kwargs):
         super(Graph, self).__init__(**kwargs)
@@ -280,7 +292,6 @@ class Graph(Widget):
                             points_minor[k2] = pos_log
                             k2 += 1
                     count_min += 1
-                #n_ticks = len(points)
             else:
                 # distance between each tick
                 tick_dist = major / float(minor if minor else 1.0)
@@ -363,8 +374,9 @@ class Graph(Widget):
                 ylabels[k].texture_update()
                 ylabels[k].size = ylabels[k].texture_size
                 y1 = max(y1, ylabels[k].texture_size[0])
-                ylabels[k].pos = tuple(map(int, (x_next, y_start +
-                                                 (ypoints[k] - ymin) * ratio)))
+                ylabels[k].pos = (
+                    int(x_next),
+                    int(y_start + (ypoints[k] - ymin) * ratio))
             if len(ylabels) > 1 and ylabels[0].top > ylabels[1].y:
                 y_overlap = True
             else:
@@ -389,8 +401,10 @@ class Graph(Widget):
                 # update the size so we can center the labels on ticks
                 xlabels[k].texture_update()
                 xlabels[k].size = xlabels[k].texture_size
-                xlabels[k].pos = tuple(map(int, (x_next + (xpoints[k] - xmin)
-                    * ratio - xlabels[k].texture_size[0] / 2., y_next)))
+                half_ts = xlabels[k].texture_size[0] / 2.
+                xlabels[k].pos = (
+                    int(x_next + (xpoints[k] - xmin) * ratio - half_ts),
+                    int(y_next))
                 if xlabels[k].x < right:
                     x_overlap = True
                     break
@@ -487,14 +501,43 @@ class Graph(Widget):
                 vert[k * 8 + 4] = top
         mesh.vertices = vert
 
+    x_axis = ListProperty([None])
+    y_axis = ListProperty([None])
+
+    def get_x_axis(self, axis=0):
+        if axis == 0:
+            return self.xlog, self.xmin, self.xmax
+        info = self.x_axis[axis]
+        return (info["log"], info["min"], info["max"])
+
+    def get_y_axis(self, axis=0):
+        if axis == 0:
+            return self.ylog, self.ymin, self.ymax
+        info = self.y_axis[axis]
+        return (info["log"], info["min"], info["max"])
+
+    def add_x_axis(self, xmin, xmax, xlog=False):
+        data = {
+            "log": xlog,
+            "min": xmin,
+            "max": xmax
+        }
+        self.x_axis.append(data)
+        return data
+
+    def add_y_axis(self, ymin, ymax, ylog=False):
+        data = {
+            "log": ylog,
+            "min": ymin,
+            "max": ymax
+        }
+        self.y_axis.append(data)
+        return data
+
     def _update_plots(self, size):
-        ylog = self.ylog
-        xlog = self.xlog
-        xmin = self.xmin
-        xmax = self.xmax
-        ymin = self.ymin
-        ymax = self.ymax
         for plot in self.plots:
+            xlog, xmin, xmax = self.get_x_axis(plot.x_axis)
+            ylog, ymin, ymax = self.get_y_axis(plot.y_axis)
             plot._update(xlog, xmin, xmax, ylog, ymin, ymax, size)
 
     def _update_colors(self, *args):
@@ -552,9 +595,9 @@ class Graph(Widget):
         grid_len = len(grids)
         grids.extend([None] * (n_labels - len(grids)))
         for k in range(grid_len, n_labels):
-            grids[k] = RotateLabel(font_size=font_size,
-                                   angle=self.x_ticks_angle,
-                                   **self.label_options)
+            grids[k] = GraphRotatedLabel(
+                font_size=font_size, angle=self.x_ticks_angle,
+                **self.label_options)
             self.add_widget(grids[k])
         return xpoints_major, xpoints_minor
 
@@ -563,7 +606,7 @@ class Graph(Widget):
         if self.ylabel:
             ylabel = self._ylabel
             if not ylabel:
-                ylabel = Label()
+                ylabel = GraphRotatedLabel()
                 self.add_widget(ylabel)
                 self._ylabel = ylabel
 
@@ -914,6 +957,7 @@ class Graph(Widget):
     displayed, excluding labels etc.
     '''
 
+
 class Plot(EventDispatcher):
     '''Plot class, see module documentation for more information.
 
@@ -946,11 +990,68 @@ class Plot(EventDispatcher):
     [].
     '''
 
+    x_axis = NumericProperty(0)
+    '''Index of the X axis to use, defaults to 0
+    '''
+
+    y_axis = NumericProperty(0)
+    '''Index of the Y axis to use, defaults to 0
+    '''
+
     def __init__(self, **kwargs):
         super(Plot, self).__init__(**kwargs)
         self.ask_draw = Clock.create_trigger(self.draw)
         self.bind(params=self.ask_draw, points=self.ask_draw)
         self._drawings = self.create_drawings()
+
+    def funcx(self):
+        """Return a function that convert or not the X value according to plot
+        prameters"""
+        return log10 if self.params["xlog"] else lambda x: x
+
+    def funcy(self):
+        """Return a function that convert or not the Y value according to plot
+        prameters"""
+        return log10 if self.params["ylog"] else lambda y: y
+
+    def x_px(self):
+        """Return a function that convert the X value of the graph to the
+        pixel coordinate on the plot, according to the plot settings and axis
+        settings
+        """
+        funcx = self.funcx()
+        params = self.params
+        size = params["size"]
+        xmin = funcx(params["xmin"])
+        xmax = funcx(params["xmax"])
+        ratiox = (size[2] - size[0]) / float(xmax - xmin)
+        return lambda x: (funcx(x) - xmin) * ratiox + size[0]
+
+    def y_px(self):
+        """Return a function that convert the Y value of the graph to the
+        pixel coordinate on the plot, according to the plot settings and axis
+        settings
+        """
+        funcy = self.funcy()
+        params = self.params
+        size = params["size"]
+        ymin = funcy(params["ymin"])
+        ymax = funcy(params["ymax"])
+        ratioy = (size[3] - size[1]) / float(ymax - ymin)
+        return lambda y: (funcy(y) - ymin) * ratioy + size[1]
+
+    def get_px_bounds(self):
+        """Returns a dict containing the pixels bounds from the plot parameters
+        """
+        params = self.params
+        x_px = self.x_px()
+        y_px = self.y_px()
+        return {
+            "xmin": x_px(params["xmin"]),
+            "xmax": x_px(params["xmax"]),
+            "ymin": y_px(params["ymin"]),
+            "ymax": y_px(params["ymax"]),
+        }
 
     def update(self, xlog, xmin, xmax, ylog, ymin, ymax, size):
         '''Called by graph whenever any of the parameters
@@ -994,22 +1095,10 @@ class Plot(EventDispatcher):
     def iterate_points(self):
         '''Iterate on all the points adjusted to the graph settings
         '''
-        params = self._params
-        funcx = log10 if params['xlog'] else lambda x: x
-        funcy = log10 if params['ylog'] else lambda x: x
-        xmin = funcx(params['xmin'])
-        ymin = funcy(params['ymin'])
-        size = params['size']
-        try:
-            ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
-            ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
-        except ZeroDivisionError:
-            return
-
+        x_px = self.x_px()
+        y_px = self.y_px()
         for x, y in self.points:
-            yield (
-                (funcx(x) - xmin) * ratiox + size[0],
-                (funcy(y) - ymin) * ratioy + size[1])
+            yield x_px(x), y_px(y)
 
     def on_clear_plot(self, *largs):
         pass
@@ -1076,13 +1165,6 @@ class MeshStemPlot(MeshLinePlot):
         vert = mesh.vertices
         ind = mesh.indices
 
-        params = self._params
-        size = params['size']
-        funcy = log10 if params['ylog'] else lambda x: x
-        ymin = funcy(params['ymin'])
-        denom = float(funcy(params['ymax']) - ymin)
-        ratioy = (size[3] - size[1]) / denom if denom else 0
-
         points = [p for p in self.iterate_points()]
         diff = len(points) * 2 - len(vert) // 4
 
@@ -1093,9 +1175,10 @@ class MeshStemPlot(MeshLinePlot):
             ind.extend(range(len(ind), len(ind) + diff))
             vert.extend([0] * (diff * 4))
 
-        for k, (x, y) in enumerate(points):
+        y0 = self.y_px()(0)
+        for k, (x, y) in enumerate(self.iterate_points()):
             vert[k * 8] = x
-            vert[k * 8 + 1] = (0 - ymin) * ratioy + size[1]
+            vert[k * 8 + 1] = y0
             vert[k * 8 + 4] = x
             vert[k * 8 + 5] = y
         mesh.vertices = vert
@@ -1173,13 +1256,15 @@ class SmoothLinePlot(Plot):
             SmoothLinePlot._texture = tex
             SmoothLinePlot._smooth_reload_observer(tex)
 
-        self._grc = RenderContext(fs=SmoothLinePlot.SMOOTH_FS,
-                use_parent_modelview=True,
-                use_parent_projection=True)
+        self._grc = RenderContext(
+            fs=SmoothLinePlot.SMOOTH_FS,
+            use_parent_modelview=True,
+            use_parent_projection=True)
         with self._grc:
             self._gcolor = Color(*self.color)
-            self._gline = Line(points=[], cap='none', width=2.,
-                    texture=SmoothLinePlot._texture)
+            self._gline = Line(
+                points=[], cap='none', width=2.,
+                texture=SmoothLinePlot._texture)
 
         return [self._grc]
 
@@ -1199,9 +1284,12 @@ class SmoothLinePlot(Plot):
 class ContourPlot(Plot):
     """
     ContourPlot visualizes 3 dimensional data as an intensity map image.
-    The user must first specify 'xrange' and 'yrange' (tuples of min,max) and then 'data', the intensity values.
-    X and Y values are assumed to be linearly spaced values from xrange/yrange and the dimensions of 'data'.
-    The color values are automatically scaled to the min and max z range of the data set.
+    The user must first specify 'xrange' and 'yrange' (tuples of min,max) and
+    then 'data', the intensity values.
+    X and Y values are assumed to be linearly spaced values from xrange/yrange
+    and the dimensions of 'data'.
+    The color values are automatically scaled to the min and max z range of the
+    data set.
     """
     _image = ObjectProperty(None)
     data = ObjectProperty(None)
@@ -1210,7 +1298,8 @@ class ContourPlot(Plot):
 
     def __init__(self, **kwargs):
         super(ContourPlot, self).__init__(**kwargs)
-        self.bind(data=self.ask_draw, xrange=self.ask_draw, yrange=self.ask_draw)
+        self.bind(data=self.ask_draw, xrange=self.ask_draw,
+                  yrange=self.ask_draw)
 
     def create_drawings(self):
         self._image = Rectangle()
@@ -1243,26 +1332,140 @@ class ContourPlot(Plot):
         image = self._image
         image.texture = self._texture
 
-        params = self._params
-        funcx = log10 if params['xlog'] else lambda x: x
-        funcy = log10 if params['ylog'] else lambda x: x
-        xmin = funcx(params['xmin'])
-        ymin = funcy(params['ymin'])
-        size = params['size']
-        ratiox = (size[2] - size[0]) / float(funcx(params['xmax']) - xmin)
-        ratioy = (size[3] - size[1]) / float(funcy(params['ymax']) - ymin)
-
-        bl = (funcx(self.xrange[0]) - xmin) * ratiox + size[0], (funcy(self.yrange[0]) - ymin) * ratioy + size[1]
-        tr = (funcx(self.xrange[1]) - xmin) * ratiox + size[0], (funcy(self.yrange[1]) - ymin) * ratioy + size[1]
+        x_px = self.x_px()
+        y_px = self.y_px()
+        bl = x_px(self.xrange[0]), y_px(self.yrange[0])
+        tr = x_px(self.xrange[1]), y_px(self.yrange[1])
         image.pos = bl
         w = tr[0] - bl[0]
         h = tr[1] - bl[1]
         image.size = (w, h)
 
 
+class BarPlot(Plot):
+    '''BarPlot class which displays a bar graph.
+    '''
+
+    bar_width = NumericProperty(1)
+    bar_spacing = NumericProperty(1.)
+    graph = ObjectProperty(allownone=True)
+
+    def __init__(self, *ar, **kw):
+        super(BarPlot, self).__init__(*ar, **kw)
+        self.bind(bar_width=self.ask_draw)
+        self.bind(points=self.update_bar_width)
+        self.bind(graph=self.update_bar_width)
+
+    def update_bar_width(self, *ar):
+        if not self.graph:
+            return
+        if len(self.points) < 2:
+            return
+        if self.graph.xmax == self.graph.xmin:
+            return
+
+        point_width = (
+            len(self.points) *
+            float(abs(self.graph.xmax) + abs(self.graph.xmin)) /
+            float(abs(max(self.points)[0]) + abs(min(self.points)[0])))
+
+        if not self.points:
+            self.bar_width = 1
+        else:
+            self.bar_width = (
+                (self.graph.width - self.graph.padding) /
+                point_width * self.bar_spacing)
+
+    def create_drawings(self):
+        self._color = Color(*self.color)
+        self._mesh = Mesh()
+        self.bind(color=lambda instr, value: setattr(self._color, 'rgba', value))
+        return [self._color, self._mesh]
+
+    def draw(self, *args):
+        super(BarPlot, self).draw(*args)
+        points = self.points
+
+        # The mesh only supports (2^16) - 1 indices, so...
+        if len(points) * 6 > 65535:
+            Logger.error(
+                "BarPlot: cannot support more than 10922 points. "
+                "Ignoring extra points.")
+            points = points[:10922]
+
+        point_len = len(points)
+        mesh = self._mesh
+        mesh.mode = 'triangles'
+        vert = mesh.vertices
+        ind = mesh.indices
+        diff = len(points) * 6 - len(vert) // 4
+        if diff < 0:
+            del vert[4 * point_len:]
+            del ind[point_len:]
+        elif diff > 0:
+            ind.extend(range(len(ind), len(ind) + diff))
+            vert.extend([0] * (diff * 4))
+
+        bounds = self.get_px_bounds()
+        x_px = self.x_px()
+        y_px = self.y_px()
+        ymin = y_px(0)
+
+        bar_width = self.bar_width
+        if bar_width < 0:
+            bar_width = x_px(bar_width) - bounds["xmin"]
+
+        for k in range(point_len):
+            p = points[k]
+            x1 = x_px(p[0])
+            x2 = x1 + bar_width
+            y1 = ymin
+            y2 = y_px(p[1])
+
+            idx = k * 24
+            # first triangle
+            vert[idx] = x1
+            vert[idx + 1] = y2
+            vert[idx + 4] = x1
+            vert[idx + 5] = y1
+            vert[idx + 8] = x2
+            vert[idx + 9] = y1
+            # second triangle
+            vert[idx + 12] = x1
+            vert[idx + 13] = y2
+            vert[idx + 16] = x2
+            vert[idx + 17] = y2
+            vert[idx + 20] = x2
+            vert[idx + 21] = y1
+        mesh.vertices = vert
+
+    def _unbind_graph(self, graph):
+        graph.unbind(width=self.update_bar_width,
+                     xmin=self.update_bar_width,
+                     ymin=self.update_bar_width)
+
+    def bind_to_graph(self, graph):
+        old_graph = self.graph
+
+        if old_graph:
+            # unbind from the old one
+            self._unbind_graph(old_graph)
+
+        # bind to the new one
+        self.graph = graph
+        graph.bind(width=self.update_bar_width,
+                   xmin=self.update_bar_width,
+                   ymin=self.update_bar_width)
+
+    def unbind_from_graph(self):
+        if self.graph:
+            self._unbind_graph(self.graph)
+
+
 if __name__ == '__main__':
     import itertools
     from math import sin, cos, pi
+    from random import randrange
     from kivy.utils import get_color_from_hex as rgb
     from kivy.uix.boxlayout import BoxLayout
     from kivy.app import App
@@ -1314,6 +1517,11 @@ if __name__ == '__main__':
             plot = MeshStemPlot(color=next(colors))
             graph.add_plot(plot)
             plot.points = [(x, x / 50.) for x in range(-50, 51)]
+
+            plot = BarPlot(color=next(colors), bar_spacing=.72)
+            graph.add_plot(plot)
+            plot.bind_to_graph(graph)
+            plot.points = [(x, .1 + randrange(10) / 10.) for x in range(-50, 1)]
 
             Clock.schedule_interval(self.update_points, 1 / 60.)
 
