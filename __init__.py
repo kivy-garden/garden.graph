@@ -712,22 +712,30 @@ class Graph(Widget):
         self._clear_buffer()
 
     def collide_plot(self, x, y):
-        '''Determine if the given coordinates fall inside the plot area.
+        '''Determine if the given coordinates fall inside the plot area. Use
+        `x, y = self.to_widget(x, y, relative=True)` to first convert into
+        widget coordinates if it's in window coordinates because it's assumed
+        to be given in local widget coordinates, relative to the graph's pos.
 
         :Parameters:
             `x, y`:
-                The coordinates to test (in window coords).
+                The coordinates to test.
         '''
         adj_x, adj_y = x - self._plot_area.pos[0], y - self._plot_area.pos[1]
         return 0 <= adj_x <= self._plot_area.size[0] \
-               and 0 <= adj_y <= self._plot_area.size[1]
+            and 0 <= adj_y <= self._plot_area.size[1]
 
     def to_data(self, x, y):
-        '''Convert window coords to data coords.
+        '''Convert widget coords to data coords. Use
+        `x, y = self.to_widget(x, y, relative=True)` to first convert into
+        widget coordinates if it's in window coordinates because it's assumed
+        to be given in local widget coordinates, relative to the graph's pos.
 
         :Parameters:
             `x, y`:
-                The coordinates to convert (in window coords).
+                The coordinates to convert.
+
+        If the graph has multiple axes, use :class:`Plot.unproject` instead.
         '''
         adj_x = float(x - self._plot_area.pos[0])
         adj_y = float(y - self._plot_area.pos[1])
@@ -955,7 +963,7 @@ class Graph(Widget):
 
     view_pos = ObjectProperty((0, 0))
     '''The pos of the graph viewing area - the area where the plots are
-    displayed, excluding labels etc.
+    displayed, excluding labels etc. It is relative to the graph's pos.
     '''
 
 
@@ -1018,7 +1026,7 @@ class Plot(EventDispatcher):
     def x_px(self):
         """Return a function that convert the X value of the graph to the
         pixel coordinate on the plot, according to the plot settings and axis
-        settings
+        settings. It's relative to the graph pos.
         """
         funcx = self.funcx()
         params = self.params
@@ -1031,7 +1039,7 @@ class Plot(EventDispatcher):
     def y_px(self):
         """Return a function that convert the Y value of the graph to the
         pixel coordinate on the plot, according to the plot settings and axis
-        settings
+        settings. The returned value is relative to the graph pos.
         """
         funcy = self.funcy()
         params = self.params
@@ -1043,7 +1051,9 @@ class Plot(EventDispatcher):
 
     def unproject(self, x, y):
         """Return a function that unproject a pixel to a X/Y value on the plot
-        (works only for linear, not log yet)
+        (works only for linear, not log yet). `x`, `y`, is relative to the
+        graph pos, so the graph's pos needs to be subtracted from x, y before
+        passing it in.
         """
         params = self.params
         size = params["size"]
@@ -1057,9 +1067,9 @@ class Plot(EventDispatcher):
         y0 = (y - size[1]) / ratioy + ymin
         return x0, y0
 
-
     def get_px_bounds(self):
-        """Returns a dict containing the pixels bounds from the plot parameters
+        """Returns a dict containing the pixels bounds from the plot parameters.
+         The returned values are relative to the graph pos.
         """
         params = self.params
         x_px = self.x_px()
@@ -1302,7 +1312,7 @@ class ContourPlot(Plot):
     data set.
     """
     _image = ObjectProperty(None)
-    data = ObjectProperty(None)
+    data = ObjectProperty(None, force_dispatch=True)
     xrange = ListProperty([0, 100])
     yrange = ListProperty([0, 100])
 
