@@ -1306,8 +1306,10 @@ class ContourPlot(Plot):
     ContourPlot visualizes 3 dimensional data as an intensity map image.
     The user must first specify 'xrange' and 'yrange' (tuples of min,max) and
     then 'data', the intensity values.
-    X and Y values are assumed to be linearly spaced values from xrange/yrange
-    and the dimensions of 'data'.
+    `data`, is a MxN matrix, where the first dimension of size M specifies the
+    `y` values, and the second dimension of size N specifies the `x` values.
+    Axis Y and X values are assumed to be linearly spaced values from
+    xrange/yrange and the dimensions of 'data', `MxN`, respectively.
     The color values are automatically scaled to the min and max z range of the
     data set.
     """
